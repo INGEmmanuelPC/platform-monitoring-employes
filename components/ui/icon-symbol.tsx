@@ -18,6 +18,25 @@ const MAPPING = {
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+
+  // Pestañas del técnico
+  'list.bullet': 'assignment',
+  'clock.arrow.circlepath': 'history',
+  'person.crop.circle.fill': 'account-circle',
+
+  // Estado de sincronización
+  'arrow.triangle.2.circlepath': 'sync',
+  'icloud.slash.fill': 'cloud-off',
+  'checkmark.icloud.fill': 'cloud-done',
+
+  // Pasos del flujo de un trabajo
+  'figure.walk': 'directions-walk',
+  'mappin.and.ellipse': 'place',
+  'camera.fill': 'photo-camera',
+  'mic.fill': 'mic',
+  'signature': 'draw',
+  'checkmark.circle.fill': 'check-circle',
+  'circle': 'radio-button-unchecked',
 } as IconMapping;
 
 /**
