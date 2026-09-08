@@ -1,8 +1,9 @@
 import { Link, useLocalSearchParams } from "expo-router";
-import { ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { ETIQUETA_TRABAJO, TRABAJOS_EJEMPLO } from "@/constants/trabajos";
+import { ETIQUETA_TRABAJO } from "@/constants/trabajos";
+import { useTrabajos } from "@/src/data/use-trabajos";
 
 type Paso = {
   ruta: "llegada" | "evidencia" | "dictado" | "firma";
@@ -16,10 +17,30 @@ type Paso = {
 // ocurren en la vida real. Nada de menús ni pestañas dentro de un trabajo.
 export default function DetalleTrabajoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const trabajo = TRABAJOS_EJEMPLO.find((t) => t.id === id) ?? TRABAJOS_EJEMPLO[0];
+  const { trabajos, loading } = useTrabajos();
+  const trabajo = trabajos.find((item) => item.id === id);
+
+  if (loading) {
+    return <ActivityIndicator className="flex-1" color="#0a7ea4" />;
+  }
+
+  if (!trabajo) {
+    return (
+      <View className="flex-1 items-center justify-center bg-neutral-50 p-6">
+        <Text className="text-center text-base text-neutral-600">
+          No se encontró este trabajo.
+        </Text>
+      </View>
+    );
+  }
 
   const pasos: Paso[] = [
-    { ruta: "llegada", titulo: "Marcar llegada", icono: "mappin.and.ellipse", hecho: true },
+    {
+      ruta: "llegada",
+      titulo: "Marcar llegada",
+      icono: "mappin.and.ellipse",
+      hecho: trabajo.llegada_at !== null,
+    },
     { ruta: "evidencia", titulo: "Fotos antes y después", icono: "camera.fill", hecho: false },
     { ruta: "dictado", titulo: "Contar qué hiciste", icono: "mic.fill", hecho: false, opcional: true },
     { ruta: "firma", titulo: "Firma del cliente", icono: "signature", hecho: false },

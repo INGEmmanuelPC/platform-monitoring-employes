@@ -92,10 +92,12 @@ Ya existe:
 - `components/` — `Button`, `Field`, `IndicadorSync`, `IconSymbol`
 - NativeWind v5 configurado y verificado en dispositivo
 
-Todavía **no** existe: SQLite, cola de sincronización, backend, autenticación,
-cámara real, audio real, lienzo de firma, panel de administrador.
+Ya existe la base inicial de SQLite y la lectura local/remota de trabajos. Aún
+no existe: cola de sincronización operativa, backend propio, cámara real, audio
+real, lienzo de firma ni panel de administrador.
 
-Los datos de `constants/trabajos.ts` son de ejemplo y se reemplazan por SQLite.
+Los estados y etiquetas de `constants/trabajos.ts` son contratos de dominio; los
+datos de trabajos viven en SQLite y se refrescan desde Supabase.
 
 ## Trampas ya conocidas — no las "arregles"
 

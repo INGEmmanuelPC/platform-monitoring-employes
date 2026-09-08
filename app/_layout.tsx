@@ -4,10 +4,14 @@ import {
   ThemeProvider,
 } from "@react-navigation/native";
 import { Stack } from "expo-router";
+import { SQLiteProvider } from "expo-sqlite";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { AuthProvider } from "@/src/session/AuthProvider";
+import { RouteGuard } from "@/src/session/RouteGuard";
+import { initializeDatabase } from "@/src/data/database";
 
 import "@/global.css";
 
@@ -25,14 +29,19 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
-        {/* Las pestañas del técnico. Sin encabezado propio: cada pestaña pone el suyo. */}
-        <Stack.Screen name="(tecnico)" options={{ headerShown: false }} />
-        {/* El flujo de un trabajo se apila encima de las pestañas. */}
-        <Stack.Screen name="trabajo/[id]" options={{ headerShown: false }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <AuthProvider>
+      <SQLiteProvider databaseName="empleados.db" onInit={initializeDatabase}>
+        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+          <RouteGuard>
+            <Stack>
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              <Stack.Screen name="(tecnico)" options={{ headerShown: false }} />
+              <Stack.Screen name="trabajo/[id]" options={{ headerShown: false }} />
+            </Stack>
+          </RouteGuard>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </SQLiteProvider>
+    </AuthProvider>
   );
 }

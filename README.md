@@ -1,50 +1,89 @@
-# Welcome to your Expo app 👋
+# App de tecnicos de campo
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicacion movil Expo para que tecnicos registren trabajos en campo, incluso cuando la conectividad sea intermitente.
 
-## Get started
+## Stack
 
-1. Install dependencies
+- Expo SDK 54, React Native y TypeScript estricto.
+- Expo Router para navegacion por archivos.
+- NativeWind v5 y Tailwind CSS v4.
+- Supabase Auth, PostgreSQL, RLS y Storage.
+- `expo-secure-store` para persistir la sesion.
+- `expo-sqlite` como almacenamiento local.
+- Zustand se reserva para el estado de sincronizacion compartido.
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Instalacion
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Variables de entorno
 
-## Learn more
+Copia `.env.example` a `.env.local` y completa los valores publicos de tu proyecto Supabase:
 
-To learn more about developing your project with Expo, look at the following resources:
+```text
+EXPO_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=tu-clave-publica
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+No incluyas `service_role`, claves secretas ni contrasenas en la aplicacion movil. `.env.local` esta excluido por Git.
 
-## Join the community
+Durante la migracion se aceptan temporalmente los nombres `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, pero los nuevos entornos deben usar `EXPO_PUBLIC_*`.
 
-Join our community of developers creating universal apps.
+## Supabase
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+1. Crea o abre un proyecto Supabase.
+2. Habilita Email en Authentication > Providers.
+3. Ejecuta `docs/supabase/001_schema_inicial.sql` desde el SQL Editor.
+4. Configura confirmacion de correo y SMTP segun el entorno.
+5. Crea datos de prueba asignando `trabajos.tecnico_id` al UUID de un usuario real.
+
+El esquema crea `profiles`, `trabajos` y `evidencias`, ligadas a `auth.users`. RLS limita los trabajos y evidencias al tecnico autenticado. Los perfiles no pueden actualizarse directamente desde el cliente para evitar cambios de rol no autorizados.
+
+## Arquitectura
+
+```text
+Expo Mobile
+  -> Auth Service -> Supabase Auth
+  -> SQLite local -> cola de sincronizacion -> Supabase PostgreSQL
+```
+
+Login y registro usan `src/api/auth.ts`. `AuthProvider` restaura la sesion y `RouteGuard` protege las rutas del tecnico. Las pantallas de trabajos leen primero SQLite y luego intentan refrescar desde Supabase.
+
+El backend propio no participa en la autenticacion: `backend/src` esta reservado para logica de negocio futura que no deba vivir en el cliente.
+
+## Ejecutar
+
+```bash
+npx expo start
+```
+
+Para limpiar la cache:
+
+```bash
+npx expo start -c
+```
+
+## Validar
+
+```bash
+npx tsc --noEmit
+npm run lint
+```
+
+La validacion nativa debe incluir tambien una exportacion Android o una prueba en Expo Go. La aplicacion no debe depender de una respuesta de red para avanzar en el trabajo de campo.
+
+## Estructura principal
+
+- `app/`: rutas, autenticacion y flujo del tecnico.
+- `components/`: componentes visuales reutilizables.
+- `constants/`: estados y etiquetas del dominio.
+- `src/api/`: clientes y servicios remotos.
+- `src/data/`: SQLite, repositorios y lectura local/remota.
+- `src/session/`: sesion y proteccion de rutas.
+- `docs/`: ADR, esquema SQL y decisiones de arquitectura.
+
+## Estado actual
+
+La autenticacion, la persistencia de sesion, el esquema Supabase, la base SQLite, la llegada local y la captura local de fotos ya estan conectados. El audio, la firma, la subida remota y el procesador de la cola son los siguientes cortes de V0.

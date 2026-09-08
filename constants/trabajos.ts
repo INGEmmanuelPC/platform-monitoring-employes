@@ -35,51 +35,18 @@ export const ETIQUETA_SYNC: Record<EstadoSync, string> = {
   CONFLICTO: "Revisar",
 };
 
-export type Trabajo = {
-  id: string;
-  cliente: string;
-  direccion: string;
-  descripcion: string;
-  hora: string;
-  estado: EstadoTrabajo;
-  sync: EstadoSync;
-  reporte: EstadoReporte;
-};
+export function formatHora(horaProgramada: string | null) {
+  if (!horaProgramada) {
+    return "Sin hora";
+  }
 
-// Datos provisionales para ver la estructura. Se reemplazan por SQLite en V0.
-export const TRABAJOS_EJEMPLO: Trabajo[] = [
-  {
-    id: "1",
-    cliente: "Finca La Esperanza",
-    direccion: "Vereda El Roble, km 12 vía Piedecuesta",
-    descripcion: "Mantenimiento de bomba de riego",
-    hora: "8:00 a. m.",
-    estado: "COMPLETADO",
-    sync: "SOLO_LOCAL",
-    reporte: "AUDIO_LISTO",
-  },
-  {
-    id: "2",
-    cliente: "Conjunto Altos del Prado",
-    direccion: "Cra 33 #45-12, torre B",
-    descripcion: "Fuga en tubería del sótano",
-    hora: "10:30 a. m.",
-    estado: "EN_SITIO",
-    sync: "SOLO_LOCAL",
-    reporte: "SIN_AUDIO",
-  },
-  {
-    id: "3",
-    cliente: "Panadería El Trigal",
-    direccion: "Calle 56 #21-08",
-    descripcion: "Revisión de aire acondicionado",
-    hora: "2:00 p. m.",
-    estado: "ASIGNADO",
-    sync: "SINCRONIZADO",
-    reporte: "SIN_AUDIO",
-  },
-];
+  const date = new Date(horaProgramada);
+  if (Number.isNaN(date.getTime())) {
+    return horaProgramada;
+  }
 
-export const PENDIENTES_POR_SUBIR = TRABAJOS_EJEMPLO.filter(
-  (t) => t.sync === "SOLO_LOCAL" || t.sync === "EN_COLA",
-).length;
+  return date.toLocaleTimeString("es-CO", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
