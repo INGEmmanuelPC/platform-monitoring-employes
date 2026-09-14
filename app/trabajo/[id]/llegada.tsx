@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, Text } from "react-native";
 import { useSQLiteContext } from "expo-sqlite";
 
 import { Button } from "@/components/Button";
@@ -37,10 +37,10 @@ export default function LlegadaScreen() {
   };
 
   return (
-    <View className="flex-1 items-center justify-center gap-6 bg-neutral-50 p-6">
+    <ScrollView className="flex-1 bg-neutral-50" contentContainerClassName="min-h-full items-center justify-center gap-6 p-6">
       <IconSymbol size={72} name="mappin.and.ellipse" color="#1B4965" />
       <Text className="text-center text-lg text-neutral-700">
-        Se guardará la hora y el lugar donde estás ahora.
+        Se guardará la hora de llegada y el estado del trabajo en el dispositivo.
       </Text>
       {error ? <Text className="text-center text-sm text-red-600">{error}</Text> : null}
       <Button
@@ -50,6 +50,6 @@ export default function LlegadaScreen() {
         className="w-full"
       />
       {saving ? <ActivityIndicator color="#0a7ea4" /> : null}
-    </View>
+    </ScrollView>
   );
 }

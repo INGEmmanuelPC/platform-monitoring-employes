@@ -1,6 +1,7 @@
-import type { AuthError } from "@supabase/supabase-js";
+import type { AuthError, Session, User } from "@supabase/supabase-js";
 
 import { supabase } from "./client";
+import { apiRequest } from "./http";
 
 export type RegisterInput = {
   name: string;
@@ -10,27 +11,54 @@ export type RegisterInput = {
 
 export type AuthAction = "login" | "register";
 
+type AuthResponse = {
+  user: User | null;
+  session: Session | null;
+};
+
 export async function register(input: RegisterInput) {
-  return supabase.auth.signUp({
-    email: input.email.trim().toLowerCase(),
-    password: input.password,
-    options: {
-      data: {
-        full_name: input.name.trim(),
-      },
-    },
-  });
+  try {
+    const result = await apiRequest<AuthResponse>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+    if (result.session) {
+      await supabase.auth.setSession(result.session);
+    }
+    return { data: result, error: null };
+  } catch (error) {
+    return { data: { user: null, session: null }, error: toAuthError(error) };
+  }
 }
 
 export async function login(email: string, password: string) {
-  return supabase.auth.signInWithPassword({
-    email: email.trim().toLowerCase(),
-    password,
-  });
+  try {
+    const result = await apiRequest<AuthResponse>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    if (!result.session) {
+      throw new Error("El servidor no devolvió una sesión válida.");
+    }
+    await supabase.auth.setSession(result.session);
+    return { data: result, error: null };
+  } catch (error) {
+    return { data: { user: null, session: null }, error: toAuthError(error) };
+  }
 }
 
 export async function logout() {
+  try {
+    await apiRequest<void>("/auth/logout", { method: "POST" });
+  } catch {
+    // El cierre local debe completarse aunque el servidor no esté disponible.
+  }
   return supabase.auth.signOut();
+}
+
+function toAuthError(error: unknown): AuthError {
+  const message = error instanceof Error ? error.message : "No fue posible autenticarte.";
+  return { name: "AuthApiError", message, status: 400 } as AuthError;
 }
 
 export function getAuthErrorMessage(error: AuthError, action: AuthAction) {
@@ -62,8 +90,13 @@ export function getAuthErrorMessage(error: AuthError, action: AuthAction) {
   ) {
     return "Supabase limitó los correos de confirmación. Configura SMTP propio o inténtalo más tarde.";
   }
-  if (normalizedMessage.includes("network") || normalizedMessage.includes("fetch")) {
-    return "No hay conexión con Supabase. Comprueba la red del celular.";
+  if (
+    normalizedMessage.includes("network") ||
+    normalizedMessage.includes("fetch") ||
+    normalizedMessage.includes("failed to fetch") ||
+    normalizedMessage.includes("network request failed")
+  ) {
+    return "No hay conexión con el backend. Comprueba que el celular esté en la misma red y que la API esté activa.";
   }
 
   return action === "login"

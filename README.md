@@ -4,16 +4,18 @@ Aplicacion movil para tecnicos de servicio en campo. Permite autenticarse,
 consultar trabajos asignados y registrar avances desde el dispositivo, incluso
 cuando la conectividad es intermitente.
 
-## Caracteristicas
+## Características
 
-- Registro, inicio y cierre de sesion con Supabase Auth.
-- Persistencia segura de la sesion con `expo-secure-store`.
+- Registro, inicio y cierre de sesión mediante la API HTTP y Supabase Auth.
+- Persistencia segura de la sesión con `expo-secure-store`.
 - Rutas protegidas para el tecnico mediante Expo Router.
 - SQLite local como fuente de lectura para el trabajo de campo.
 - Refresco de trabajos desde Supabase cuando hay conectividad.
 - Registro local de llegada con hora y cola de sincronizacion.
-- Captura local de evidencias fotograficas antes y despues.
-- Politicas RLS para proteger trabajos, perfiles y evidencias.
+- Captura local de evidencias fotográficas antes y después, con subida diferida.
+- Notas de servicio y captura local de trazos de firma SVG.
+- CRUD autenticado de técnicos, clientes y órdenes de trabajo.
+- Políticas RLS para proteger perfiles, trabajos, clientes y evidencias.
 
 ## Tecnologias
 
@@ -41,18 +43,21 @@ cuando la conectividad es intermitente.
 npm install
 ```
 
-## Configuracion de Supabase
+## Configuración de Supabase
 
 1. Crea un proyecto en Supabase.
 2. En **Authentication > Providers > Email**, habilita el proveedor Email.
 3. Abre **SQL Editor** y ejecuta todo el archivo
-   `docs/supabase/001_schema_inicial.sql`.
-4. Configura la confirmacion de correo segun el entorno.
-5. Crea un usuario desde la aplicacion o desde **Authentication > Users**.
+  `docs/supabase/001_schema_inicial.sql`.
+4. Ejecuta `docs/supabase/002_crud_backend.sql` para habilitar los tres CRUD,
+  las relaciones de clientes y el bucket privado de evidencias.
+5. Configura la confirmacion de correo segun el entorno.
+6. Crea un usuario desde la aplicacion o desde **Authentication > Users**.
 
-El esquema crea las tablas `profiles`, `trabajos` y `evidencias`, relacionadas
-con `auth.users`. Tambien crea triggers, indices y politicas RLS. Cada tecnico
-solo puede consultar y modificar sus propios trabajos y evidencias.
+El esquema crea las tablas `profiles`, `trabajos`, `evidencias` y `clientes`,
+relacionadas con `auth.users`. También crea triggers, índices, un bucket privado
+para evidencias y políticas RLS. Las políticas aplicadas limitan el acceso a los
+datos que pertenecen al usuario autenticado.
 
 ## Variables de entorno
 
@@ -67,6 +72,7 @@ Completa `.env.local` con los valores publicos de Supabase:
 ```env
 EXPO_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=tu-clave-publica
+EXPO_PUBLIC_API_URL=http://localhost:3000
 ```
 
 Puedes obtenerlos en **Project Settings > API**:
@@ -125,6 +131,42 @@ Opciones de prueba:
 Despues de cambiar `.env.local`, reinicia Expo para que las variables se
 carguen nuevamente.
 
+## Backend HTTP
+
+El movil ya no llama directamente a Supabase para autenticarse ni para los
+CRUD. El backend valida el token Bearer y usa Supabase como proveedor de Auth,
+PostgreSQL y Storage.
+
+```powershell
+cd backend
+Copy-Item .env.example .env
+# Completa SUPABASE_URL y SUPABASE_ANON_KEY en backend/.env
+npm install
+npm run dev
+```
+
+El archivo `backend/.env.example` define `PORT`, `SUPABASE_URL`,
+`SUPABASE_ANON_KEY` y `CORS_ORIGIN`. El servidor también puede usar las
+variables públicas del `.env.local` raíz como respaldo para desarrollo local.
+Nunca copies `service_role` ni claves secretas al proyecto Expo.
+
+## API HTTP
+
+`GET /health`, `POST /auth/register` y `POST /auth/login` son públicos. Las
+demás rutas requieren `Authorization: Bearer <access_token>`.
+
+| Ruta | Operaciones implementadas |
+| --- | --- |
+| `/auth/logout` | `POST` para cerrar sesión en el cliente. |
+| `/sync` | `POST` para procesar hasta 50 operaciones locales de trabajos o evidencias. |
+| `/evidencias/upload` | `POST` multipart para subir una imagen al bucket privado. |
+| `/tecnicos` | `GET`, `POST`, `GET /:id`, `PATCH /:id`, `DELETE /:id` (baja lógica). |
+| `/clientes` | `GET`, `POST`, `GET /:id`, `PATCH /:id`, `DELETE /:id`. |
+| `/ordenes` | `GET`, `POST`, `GET /:id`, `PATCH /:id`, `DELETE /:id`. |
+
+La API valida la sesión con Supabase, crea un cliente por solicitud con el
+token Bearer y deja que las políticas RLS apliquen sobre PostgreSQL y Storage.
+
 ## Flujo de prueba
 
 ```text
@@ -136,7 +178,18 @@ Registro -> Confirmacion de correo -> Inicio de sesion
 El registro de llegada y las fotografias se guardan primero en SQLite. El
 tecnico no debe quedar bloqueado por una perdida de conectividad.
 
-## Validacion
+## Sincronización
+
+SQLite es la fuente de lectura inmediata del técnico. Al marcar llegada,
+guardar una nota, evidencia, firma o finalización, la app actualiza primero la
+base local y encola una operación. Al enfocar las pantallas de trabajos y al
+usar el botón de sincronización, intenta enviar la cola a la API; las fotos
+locales se suben antes al bucket privado y luego se registra su ruta.
+
+Un fallo de red no bloquea esas acciones locales. La cola aún no tiene un
+planificador en segundo plano ni pruebas automáticas de reintentos/conflictos.
+
+## Validación y pruebas
 
 ```bash
 npx tsc --noEmit
@@ -146,6 +199,10 @@ npx expo export --platform android
 
 Tambien se recomienda probar el flujo principal con el dispositivo en modo
 avion despues de haber cargado los datos locales.
+
+No hay suite de pruebas automatizadas configurada actualmente. La validación
+manual con Supabase y en un dispositivo físico sigue siendo necesaria para los
+flujos de cámara, sincronización y autenticación.
 
 ## Estructura
 
@@ -171,32 +228,37 @@ assets/               Iconos y recursos de la aplicacion
 
 ```text
 Expo Mobile
-  |-- Auth Service ------> Supabase Auth
-  |-- SQLite local ------> Cola local de sincronizacion
-  |                              |
-  |                              `--> Supabase PostgreSQL
+  |-- HTTP API -----------> Backend Express
+  |                            |
+  |                            `--> Supabase Auth, PostgreSQL, Storage
+  |-- SQLite local ------> Cola de sincronizacion -> Backend
   `-- RouteGuard --------> Rutas protegidas del tecnico
 ```
 
-Supabase se utiliza directamente desde la aplicacion movil para autenticacion
-y lectura remota. No existe un backend Express intermedio en este repositorio.
+La app solo usa Supabase directamente para conservar/restaurar la sesión local
+con el token recibido por el backend. Las operaciones de negocio pasan por la
+API HTTP.
 
 ## Estado del proyecto
 
-Implementado:
+Implementado y validado por compilación/arranque:
 
-- Autenticacion con Supabase.
+- Autenticacion mediante backend HTTP y Supabase Auth.
 - Proteccion y restauracion de sesion.
 - Esquema PostgreSQL con RLS.
 - Persistencia local con SQLite.
-- Lectura de trabajos desde SQLite y Supabase.
+- Lectura de trabajos desde SQLite y backend.
 - Registro local de llegada.
 - Captura local de fotos.
+- CRUD de clientes y órdenes desde la app.
+- Subida diferida de evidencias mediante Storage.
 
-Pendiente para los siguientes cortes de V0:
+Pendiente de validación manual con Supabase y dispositivo:
 
-- Procesador de la cola y sincronizacion remota de evidencias.
-- Subida de archivos a Supabase Storage.
-- Grabacion de audio.
-- Firma digital del cliente.
+- CRUD administrativo real de técnicos: crear un técnico requiere crear
+  también su usuario de Supabase Auth y debe resolverse con un flujo admin
+  protegido en backend, nunca con `service_role` en Expo.
+- Grabación de audio y transcripción.
+- Validación manual de la captura de firma SVG en dispositivo y de su envío al
+  backend.
 - Pruebas automatizadas de transiciones y RLS.

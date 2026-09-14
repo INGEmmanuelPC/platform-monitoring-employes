@@ -5,14 +5,14 @@
 
 ## Decisión
 
-La app usa `@supabase/supabase-js` directamente desde `src/api/`. El registro
-usa `supabase.auth.signUp`, el login usa `signInWithPassword` y el cierre de
-sesión usa `signOut`. La sesión se persiste mediante `expo-secure-store`.
+El backend HTTP usa `@supabase/supabase-js` para registro y login. La app
+recibe la sesión del backend y usa `@supabase/supabase-js` únicamente para
+persistirla y restaurarla mediante `expo-secure-store`.
 
 `AuthProvider` escucha los cambios de sesión y `RouteGuard` separa las rutas
-públicas de las rutas del técnico. No se crean endpoints `/auth/*`, un servidor
-Express ni un repositorio de usuarios en memoria: Supabase Auth es el backend
-oficial definido por la arquitectura del proyecto.
+públicas de las rutas del técnico. Los endpoints `/auth/*` pertenecen al
+backend HTTP; no existe un repositorio de usuarios en memoria. Supabase Auth
+sigue siendo el proveedor de identidad detrás del backend.
 
 ## Consecuencias
 
