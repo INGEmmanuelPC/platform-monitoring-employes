@@ -43,6 +43,14 @@ cuando la conectividad es intermitente.
 npm install
 ```
 
+## Estilos
+
+NativeWind v5 usa Tailwind CSS v4 con configuración basada en CSS. Las rutas
+que contienen clases están declaradas en `tailwind.config.js` y en `global.css`.
+`babel.config.js` conserva el preset estándar de Expo; NativeWind v5 aplica la
+transformación de `className` desde `metro.config.js`, por lo que no se debe
+agregar el preset heredado `nativewind/babel`.
+
 ## Configuración de Supabase
 
 1. Crea un proyecto en Supabase.
@@ -67,7 +75,8 @@ Copia el archivo de ejemplo:
 Copy-Item .env.example .env.local
 ```
 
-Completa `.env.local` con los valores publicos de Supabase:
+Completa `.env.local` con valores públicos. Este archivo lo lee Expo, por lo
+que solo puede contener variables con prefijo `EXPO_PUBLIC_`:
 
 ```env
 EXPO_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
@@ -80,8 +89,12 @@ Puedes obtenerlos en **Project Settings > API**:
 - **Project URL** -> `EXPO_PUBLIC_SUPABASE_URL`
 - **Publishable key** o antigua **anon key** -> `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 
-Nunca uses `service_role`, `secret keys`, contrasenas ni tokens privados en la
-aplicacion movil. `.env.local` esta excluido de Git.
+`EXPO_PUBLIC_API_URL` debe apuntar al servidor backend. En un celular físico no
+uses `localhost`: reemplázalo por la IP LAN del computador que ejecuta el
+backend, por ejemplo `http://192.168.1.20:3000`.
+
+Nunca uses `service_role`, claves secretas, contraseñas ni tokens privados en
+la aplicación móvil. `.env.local` está excluido de Git.
 
 ## Crear un trabajo de prueba
 
@@ -140,15 +153,35 @@ PostgreSQL y Storage.
 ```powershell
 cd backend
 Copy-Item .env.example .env
-# Completa SUPABASE_URL y SUPABASE_ANON_KEY en backend/.env
+# Completa todas las variables requeridas en backend/.env
 npm install
 npm run dev
 ```
 
-El archivo `backend/.env.example` define `PORT`, `SUPABASE_URL`,
-`SUPABASE_ANON_KEY` y `CORS_ORIGIN`. El servidor también puede usar las
-variables públicas del `.env.local` raíz como respaldo para desarrollo local.
-Nunca copies `service_role` ni claves secretas al proyecto Expo.
+Completa `backend/.env` de esta forma:
+
+```env
+PORT=3000
+SUPABASE_URL=https://tu-proyecto.supabase.co
+SUPABASE_ANON_KEY=tu-clave-publica
+SUPABASE_SERVICE_ROLE_KEY=tu-clave-service-role-secreta
+CORS_ORIGIN=*
+```
+
+| Variable | Uso |
+| --- | --- |
+| `PORT` | Puerto del servidor Express; por defecto `3000`. |
+| `SUPABASE_URL` | URL del proyecto de Supabase. |
+| `SUPABASE_ANON_KEY` | Clave pública usada para validar sesiones y aplicar RLS. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clave secreta usada solo por el backend para invitar y desactivar técnicos. |
+| `CORS_ORIGIN` | Origen permitido para CORS; `*` sirve para desarrollo. |
+
+Obtén `SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY` en
+**Supabase > Project Settings > API**. La clave `SUPABASE_SERVICE_ROLE_KEY`
+no debe copiarse a `.env.local`, al código móvil ni a Git. El backend puede usar
+las variables públicas del `.env.local` raíz como respaldo de desarrollo para
+la URL y la anon key, pero siempre requiere su propia
+`SUPABASE_SERVICE_ROLE_KEY`.
 
 ## API HTTP
 
