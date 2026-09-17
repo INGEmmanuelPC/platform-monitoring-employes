@@ -160,7 +160,7 @@ demás rutas requieren `Authorization: Bearer <access_token>`.
 | `/auth/logout` | `POST` para cerrar sesión en el cliente. |
 | `/sync` | `POST` para procesar hasta 50 operaciones locales de trabajos o evidencias. |
 | `/evidencias/upload` | `POST` multipart para subir una imagen al bucket privado. |
-| `/tecnicos` | `GET`, `POST`, `GET /:id`, `PATCH /:id`, `DELETE /:id` (baja lógica). |
+| `/tecnicos` | `GET`, `POST`, `GET /:id`, `PATCH /:id`, `DELETE /:id` (baja lógica del perfil permitido por RLS). |
 | `/clientes` | `GET`, `POST`, `GET /:id`, `PATCH /:id`, `DELETE /:id`. |
 | `/ordenes` | `GET`, `POST`, `GET /:id`, `PATCH /:id`, `DELETE /:id`. |
 

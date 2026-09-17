@@ -161,7 +161,11 @@ app.post("/sync", async (request, response, next) => {
 
 app.get("/tecnicos", async (_request, response, next) => {
   try {
-    const { data, error } = await response.locals.supabase.from("profiles").select("*").order("created_at", { ascending: false });
+    const { data, error } = await response.locals.supabase
+      .from("profiles")
+      .select("*")
+      .eq("estado", "ACTIVO")
+      .order("created_at", { ascending: false });
     if (error) throw error;
     response.json(data);
   } catch (error) { next(error); }
@@ -170,13 +174,13 @@ app.get("/tecnicos", async (_request, response, next) => {
 app.post("/tecnicos", async (request, response, next) => {
   try {
     const input = parse(tecnicoSchema, request.body);
-    const { data, error } = await response.locals.supabase.from("profiles").insert({
+    const { data, error } = await response.locals.supabase.from("profiles").upsert({
       id: response.locals.user.id,
       full_name: input.nombre,
       telefono: input.telefono ?? "",
       especialidad: input.especialidad ?? "",
       estado: input.estado,
-    }).select().single();
+    }, { onConflict: "id" }).select().single();
     if (error) throw error;
     response.status(201).json(data);
   } catch (error) { next(error); }
@@ -203,9 +207,18 @@ app.patch("/tecnicos/:id", async (request, response, next) => {
 
 app.delete("/tecnicos/:id", async (request, response, next) => {
   try {
-    const { error } = await response.locals.supabase.from("profiles").update({ estado: "INACTIVO" }).eq("id", request.params.id);
+    const { data, error } = await response.locals.supabase
+      .from("profiles")
+      .update({ estado: "INACTIVO" })
+      .eq("id", request.params.id)
+      .select("id")
+      .maybeSingle();
     if (error) throw error;
-    response.status(204).send();
+    if (!data) {
+      response.status(404).json({ error: "El técnico no existe o no tienes permisos para eliminarlo." });
+      return;
+    }
+    response.json({ deleted: true, id: data.id });
   } catch (error) { next(error); }
 });
 

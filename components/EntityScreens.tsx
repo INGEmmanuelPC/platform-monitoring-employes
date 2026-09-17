@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 import { Button } from "./Button";
 import {
@@ -13,25 +13,25 @@ import {
   type EntityRecord,
 } from "@/src/api/entities";
 
-type Field = { key: string; label: string; required?: boolean; multiline?: boolean };
+type Field = { key: string; label: string; required?: boolean; multiline?: boolean; maxLength?: number };
 
 const definitions: Record<EntityName, { title: string; fields: Field[]; summary: (item: EntityRecord) => string }> = {
   tecnicos: {
     title: "Técnicos",
     fields: [
-      { key: "nombre", label: "Nombre", required: true },
-      { key: "telefono", label: "Teléfono" },
-      { key: "especialidad", label: "Especialidad" },
+      { key: "nombre", label: "Nombre", required: true, maxLength: 120 },
+      { key: "telefono", label: "Teléfono", maxLength: 40 },
+      { key: "especialidad", label: "Especialidad", maxLength: 120 },
     ],
     summary: (item) => String(item.nombre ?? item.full_name ?? "Sin nombre"),
   },
   clientes: {
     title: "Clientes",
     fields: [
-      { key: "nombre", label: "Nombre", required: true },
-      { key: "email", label: "Correo" },
-      { key: "telefono", label: "Teléfono" },
-      { key: "direccion", label: "Dirección" },
+      { key: "nombre", label: "Nombre", required: true, maxLength: 120 },
+      { key: "email", label: "Correo", maxLength: 160 },
+      { key: "telefono", label: "Teléfono", maxLength: 40 },
+      { key: "direccion", label: "Dirección", maxLength: 240 },
     ],
     summary: (item) => String(item.nombre ?? "Sin nombre"),
   },
@@ -39,9 +39,9 @@ const definitions: Record<EntityName, { title: string; fields: Field[]; summary:
     title: "Órdenes de trabajo",
     fields: [
       { key: "cliente_id", label: "ID del cliente", required: true },
-      { key: "descripcion", label: "Descripción", required: true, multiline: true },
-      { key: "direccion", label: "Dirección" },
-      { key: "observaciones", label: "Observaciones", multiline: true },
+      { key: "descripcion", label: "Descripción", required: true, multiline: true, maxLength: 1000 },
+      { key: "direccion", label: "Dirección", maxLength: 240 },
+      { key: "observaciones", label: "Observaciones", multiline: true, maxLength: 2000 },
     ],
     summary: (item) => String(item.descripcion ?? "Sin descripción"),
   },
@@ -124,7 +124,12 @@ export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: b
     if (!edit || !id) return;
     getEntity(entity, id).then((item) => {
       const next: Record<string, string> = {};
-      definition.fields.forEach((field) => { next[field.key] = String(item[field.key] ?? ""); });
+      definition.fields.forEach((field) => {
+        const value = entity === "tecnicos" && field.key === "nombre"
+          ? item.full_name
+          : item[field.key];
+        next[field.key] = String(value ?? "");
+      });
       setValues(next);
     }).catch((loadError) => setError(loadError instanceof Error ? loadError.message : "No se pudo cargar el registro."));
   }, [definition.fields, edit, entity, id]);
@@ -132,11 +137,18 @@ export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: b
   const save = async () => {
     const missing = definition.fields.find((field) => field.required && !values[field.key]?.trim());
     if (missing) { setError(`Ingresa ${missing.label.toLowerCase()}.`); return; }
+    const email = values.email?.trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Ingresa un correo válido.");
+      return;
+    }
     setSaving(true); setError(null);
     try {
       if (edit && id) await updateEntity(entity, id, values);
       else await createEntity(entity, values);
-      router.back();
+      Alert.alert("Guardado", "Los cambios se guardaron correctamente.", [
+        { text: "Aceptar", onPress: () => router.back() },
+      ]);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "No se pudo guardar el registro.");
     } finally { setSaving(false); }
@@ -172,7 +184,7 @@ export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: b
             ) : (
               <>
             <Text className="font-semibold text-neutral-800">{field.label}</Text>
-            <TextInput className="rounded-lg border border-neutral-300 bg-white p-3" multiline={field.multiline} value={values[field.key] ?? ""} onChangeText={(value) => setValues((current) => ({ ...current, [field.key]: value }))} />
+            <TextInput className="rounded-lg border border-neutral-300 bg-white p-3" multiline={field.multiline} maxLength={field.maxLength} value={values[field.key] ?? ""} onChangeText={(value) => setValues((current) => ({ ...current, [field.key]: value }))} />
               </>
             )}
           </View>
