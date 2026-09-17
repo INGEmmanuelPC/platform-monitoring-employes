@@ -4,20 +4,27 @@ import multer from "multer";
 import { z, type ZodError } from "zod";
 
 import { config } from "./config.js";
-import { createRequestClient } from "./supabase.js";
+import { createAdminClient, createRequestClient } from "./supabase.js";
 import {
   clienteSchema,
   credentialsSchema,
   ordenSchema,
   patchSchema,
   registerSchema,
-  tecnicoSchema,
+  tecnicoCreateSchema,
+  tecnicoUpdateSchema,
 } from "./validation.js";
 
 const app = express();
+const apiRevision = "tecnicos-admin-r1";
+const startedAt = new Date().toISOString();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
 app.use(cors({ origin: config.corsOrigin === "*" ? true : config.corsOrigin }));
 app.use(express.json({ limit: "1mb" }));
+app.use((_request, response, next) => {
+  response.setHeader("X-Backend-Revision", apiRevision);
+  next();
+});
 
 const accessToken = (request: Request) => {
   const value = request.header("authorization");
@@ -38,28 +45,41 @@ async function requireUser(request: Request, response: Response, next: NextFunct
     return;
   }
 
+  // El perfil lo crea exclusivamente el trigger handle_new_user. No hacemos
+  // upsert con el JWT del usuario: permitiría escribir directamente profiles.
   const profileClient = createRequestClient(token);
-  const { error: profileError } = await profileClient.from("profiles").upsert(
-    {
-      id: data.user.id,
-      full_name: String(data.user.user_metadata?.full_name ?? ""),
-    },
-    { onConflict: "id", ignoreDuplicates: true },
-  );
-  if (profileError) {
-    next(profileError);
-    return;
-  }
 
   response.locals.user = data.user;
   response.locals.supabase = profileClient;
+  const { data: profile, error: profileLookupError } = await profileClient
+    .from("profiles")
+    .select("id, role, estado")
+    .eq("id", data.user.id)
+    .single();
+  if (profileLookupError || !profile) {
+    response.status(403).json({ error: "No se pudo validar el perfil de la sesión." });
+    return;
+  }
+  if (profile.estado === "INACTIVO") {
+    response.status(403).json({ error: "Tu cuenta está desactivada." });
+    return;
+  }
+  response.locals.profile = profile;
+  next();
+}
+
+function requireAdmin(_request: Request, response: Response, next: NextFunction) {
+  if (response.locals.profile?.role !== "admin") {
+    response.status(403).json({ error: "Esta acción requiere permisos de administrador." });
+    return;
+  }
   next();
 }
 
 const parse = <T>(schema: z.ZodType<T>, value: unknown) => schema.parse(value);
 
 app.get("/health", (_request, response) => {
-  response.json({ status: "ok" });
+  response.json({ status: "ok", revision: apiRevision, startedAt });
 });
 
 app.post("/auth/register", async (request, response, next) => {
@@ -159,65 +179,97 @@ app.post("/sync", async (request, response, next) => {
   } catch (error) { next(error); }
 });
 
-app.get("/tecnicos", async (_request, response, next) => {
+const tecnicoFields = "id, full_name, telefono, especialidad, estado, created_at, updated_at";
+
+app.get("/tecnicos", requireAdmin, async (request, response, next) => {
   try {
-    const { data, error } = await response.locals.supabase
+    const search = typeof request.query.search === "string" ? request.query.search.trim() : "";
+    let query = response.locals.supabase
       .from("profiles")
-      .select("*")
+      .select(tecnicoFields)
+      .eq("role", "tecnico")
       .eq("estado", "ACTIVO")
       .order("created_at", { ascending: false });
+    if (search) query = query.ilike("full_name", `%${search}%`);
+    const { data, error } = await query;
     if (error) throw error;
     response.json(data);
   } catch (error) { next(error); }
 });
 
-app.post("/tecnicos", async (request, response, next) => {
+app.post("/tecnicos", requireAdmin, async (request, response, next) => {
   try {
-    const input = parse(tecnicoSchema, request.body);
-    const { data, error } = await response.locals.supabase.from("profiles").upsert({
-      id: response.locals.user.id,
-      full_name: input.nombre,
-      telefono: input.telefono ?? "",
-      especialidad: input.especialidad ?? "",
-      estado: input.estado,
-    }, { onConflict: "id" }).select().single();
+    const input = parse(tecnicoCreateSchema, request.body);
+    const adminClient = createAdminClient();
+    const { data: invitation, error: invitationError } = await adminClient.auth.admin.inviteUserByEmail(
+      input.email.toLowerCase(),
+      { data: { full_name: input.nombre } },
+    );
+    if (invitationError) throw invitationError;
+    if (!invitation.user) throw new Error("Supabase no devolvió el técnico invitado.");
+
+    const { data, error } = await response.locals.supabase
+      .from("profiles")
+      // handle_new_user crea el perfil con role = 'tecnico'; este flujo nunca
+      // recibe ni modifica roles.
+      .update({ telefono: input.telefono ?? "", especialidad: input.especialidad ?? "" })
+      .eq("id", invitation.user.id)
+      .select(tecnicoFields)
+      .single();
     if (error) throw error;
     response.status(201).json(data);
   } catch (error) { next(error); }
 });
 
-app.get("/tecnicos/:id", async (request, response, next) => {
+app.get("/tecnicos/:id", requireAdmin, async (request, response, next) => {
   try {
-    const { data, error } = await response.locals.supabase.from("profiles").select("*").eq("id", request.params.id).single();
+    const { data, error } = await response.locals.supabase
+      .from("profiles")
+      .select(tecnicoFields)
+      .eq("id", request.params.id)
+      .eq("role", "tecnico")
+      .single();
     if (error) throw error;
     response.json(data);
   } catch (error) { next(error); }
 });
 
-app.patch("/tecnicos/:id", async (request, response, next) => {
+app.patch("/tecnicos/:id", requireAdmin, async (request, response, next) => {
   try {
-    const input = parse(patchSchema(tecnicoSchema), request.body);
+    const input = parse(patchSchema(tecnicoUpdateSchema), request.body);
     const values = { ...input, ...(input.nombre ? { full_name: input.nombre } : {}) };
     delete (values as Record<string, unknown>).nombre;
-    const { data, error } = await response.locals.supabase.from("profiles").update(values).eq("id", request.params.id).select().single();
+    const { data, error } = await response.locals.supabase
+      .from("profiles")
+      .update(values)
+      .eq("id", request.params.id)
+      .eq("role", "tecnico")
+      .select(tecnicoFields)
+      .single();
     if (error) throw error;
     response.json(data);
   } catch (error) { next(error); }
 });
 
-app.delete("/tecnicos/:id", async (request, response, next) => {
+app.delete("/tecnicos/:id", requireAdmin, async (request, response, next) => {
   try {
     const { data, error } = await response.locals.supabase
       .from("profiles")
       .update({ estado: "INACTIVO" })
       .eq("id", request.params.id)
+      .eq("role", "tecnico")
       .select("id")
       .maybeSingle();
     if (error) throw error;
     if (!data) {
-      response.status(404).json({ error: "El técnico no existe o no tienes permisos para eliminarlo." });
+      response.status(404).json({ error: "El técnico no existe." });
       return;
     }
+
+    const { error: banError } = await createAdminClient().auth.admin.updateUserById(data.id, {
+      ban_duration: "876000h",
+    });
+    if (banError) throw banError;
     response.json({ deleted: true, id: data.id });
   } catch (error) { next(error); }
 });

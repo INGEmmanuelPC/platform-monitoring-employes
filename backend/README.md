@@ -1,9 +1,10 @@
 # Backend HTTP
 
 API HTTP en Express para la aplicación móvil. Supabase permanece como
-proveedor de Auth, PostgreSQL, RLS y Storage. El backend no usa ni requiere una
-`service_role`; valida el token Bearer y crea un cliente de Supabase por
-solicitud para que las políticas RLS continúen aplicándose.
+proveedor de Auth, PostgreSQL, RLS y Storage. El backend valida el token Bearer
+y crea un cliente de Supabase por solicitud para que las políticas RLS continúen
+aplicándose. Una `service_role` separada se usa exclusivamente para invitar o
+bloquear cuentas mediante Supabase Auth Admin.
 
 ## Requisitos
 
@@ -27,6 +28,7 @@ Configura estas variables en `backend/.env` sin versionar valores reales:
 | `PORT` | Puerto HTTP; por defecto `3000`. |
 | `SUPABASE_URL` | URL del proyecto Supabase. |
 | `SUPABASE_ANON_KEY` | Clave pública o publishable de Supabase. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clave administrativa exclusiva del backend para Auth Admin. Nunca usar `EXPO_PUBLIC_*` ni incluirla en la app. |
 | `CORS_ORIGIN` | Origen permitido por CORS; por defecto `*` para desarrollo. |
 
 Como respaldo local, el servidor puede leer `EXPO_PUBLIC_SUPABASE_URL` y
@@ -59,3 +61,11 @@ npm run typecheck
 ```
 
 No hay pruebas automatizadas configuradas para este backend.
+
+Las rutas de `/tecnicos` exigen un perfil activo con `role = 'admin'`; un
+técnico recibe `403`. Aplica también `003_tecnicos_admin_rls.sql` antes de
+usarlas.
+
+`GET /health` devuelve la revisión y hora de inicio de la instancia actual.
+Úsalo al depurar dispositivos físicos para confirmar que Expo llama al backend
+esperado.

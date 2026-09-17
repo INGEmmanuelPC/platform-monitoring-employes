@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 import { Button } from "./Button";
@@ -106,6 +106,13 @@ export function EntityListScreen({ entity }: { entity: EntityName }) {
 
 export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: boolean }) {
   const definition = definitions[entity];
+  const fields = useMemo(() => entity === "tecnicos" && !edit
+    ? [
+        definition.fields[0],
+        { key: "email", label: "Correo", required: true, maxLength: 160 },
+        ...definition.fields.slice(1),
+      ]
+    : definition.fields, [definition.fields, edit, entity]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [values, setValues] = useState<Record<string, string>>({});
@@ -124,7 +131,7 @@ export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: b
     if (!edit || !id) return;
     getEntity(entity, id).then((item) => {
       const next: Record<string, string> = {};
-      definition.fields.forEach((field) => {
+      fields.forEach((field) => {
         const value = entity === "tecnicos" && field.key === "nombre"
           ? item.full_name
           : item[field.key];
@@ -132,10 +139,10 @@ export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: b
       });
       setValues(next);
     }).catch((loadError) => setError(loadError instanceof Error ? loadError.message : "No se pudo cargar el registro."));
-  }, [definition.fields, edit, entity, id]);
+  }, [edit, entity, fields, id]);
 
   const save = async () => {
-    const missing = definition.fields.find((field) => field.required && !values[field.key]?.trim());
+    const missing = fields.find((field) => field.required && !values[field.key]?.trim());
     if (missing) { setError(`Ingresa ${missing.label.toLowerCase()}.`); return; }
     const email = values.email?.trim();
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -146,7 +153,10 @@ export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: b
     try {
       if (edit && id) await updateEntity(entity, id, values);
       else await createEntity(entity, values);
-      Alert.alert("Guardado", "Los cambios se guardaron correctamente.", [
+      const message = entity === "tecnicos" && !edit
+        ? "Invitación enviada. El técnico debe revisar su correo para configurar su cuenta."
+        : "Los cambios se guardaron correctamente.";
+      Alert.alert("Guardado", message, [
         { text: "Aceptar", onPress: () => router.back() },
       ]);
     } catch (saveError) {
@@ -158,7 +168,7 @@ export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: b
     <ScrollView className="flex-1 bg-neutral-50">
       <View className="gap-4 p-4">
         <Text className="text-2xl font-bold text-neutral-900">{edit ? "Editar" : "Nuevo"} {definition.title.slice(0, -1)}</Text>
-        {definition.fields.map((field) => (
+        {fields.map((field) => (
           <View key={field.key} className="gap-1">
             {entity === "ordenes" && field.key === "cliente_id" ? (
               <>
@@ -222,11 +232,11 @@ export function EntityDetailScreen({ entity }: { entity: EntityName }) {
       {deleteError ? <Text className="mb-2 text-center text-sm text-red-600">{deleteError}</Text> : null}
       {confirmingDelete ? (
         <View className="gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
-          <Text className="text-sm text-red-800">Esta acción no se puede deshacer.</Text>
+          <Text className="text-sm text-red-800">El técnico quedará desactivado y no podrá usar rutas protegidas.</Text>
           <View className="flex-row gap-2">
             <Button text="Cancelar" onPress={() => setConfirmingDelete(false)} className="flex-1 bg-neutral-500" />
             <Button
-              text={deleting ? "Eliminando..." : "Confirmar eliminación"}
+              text={deleting ? "Desactivando..." : "Confirmar desactivación"}
               disabled={deleting}
               onPress={() => void remove()}
               className="flex-1 bg-red-600"
@@ -234,7 +244,7 @@ export function EntityDetailScreen({ entity }: { entity: EntityName }) {
           </View>
         </View>
       ) : (
-        <Button text="Eliminar" onPress={() => setConfirmingDelete(true)} className="bg-red-600" />
+        <Button text={entity === "tecnicos" ? "Desactivar" : "Eliminar"} onPress={() => setConfirmingDelete(true)} className="bg-red-600" />
       )}
     </View>
   );

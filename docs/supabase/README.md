@@ -7,6 +7,7 @@
 3. Selecciona **New query**.
 4. Copia todo el contenido de `001_schema_inicial.sql` y pulsa **Run**.
 5. Copia todo el contenido de `002_crud_backend.sql` y pulsa **Run**.
+6. Copia todo el contenido de `003_tecnicos_admin_rls.sql` y pulsa **Run**.
 
 Las migraciones crean:
 
@@ -18,6 +19,44 @@ Las migraciones crean:
 También crean el trigger que genera el perfil al registrar un usuario, índices,
 políticas RLS y el bucket privado `evidencias`. El acceso se restringe al usuario
 autenticado según las relaciones de propiedad de perfiles, trabajos y clientes.
+
+## Administrador inicial y técnicos
+
+Después de ejecutar la migración 003, asigna el primer administrador de forma
+manual en **Supabase Dashboard > SQL Editor**, reemplazando el correo:
+
+```sql
+update public.profiles set role = 'admin'
+where id = (select id from auth.users where email = 'admin@tu-dominio.com');
+```
+
+La app no contiene una pantalla ni un endpoint para cambiar roles. El backend
+invita técnicos por correo y el trigger `handle_new_user` les crea un perfil con
+el rol predeterminado `tecnico`.
+
+## Verificar el CRUD de técnicos
+
+Inicia sesión con un perfil `admin` activo y crea un técnico usando un correo
+nuevo (el correo del administrador no puede reutilizarse). Comprueba que el
+perfil invitado tiene `role = 'tecnico'` y que los cambios de nombre, teléfono,
+especialidad y estado se reflejan en `profiles`:
+
+```sql
+select
+  u.email,
+  p.full_name,
+  p.role,
+  p.telefono,
+  p.especialidad,
+  p.estado
+from auth.users u
+join public.profiles p on p.id = u.id
+where u.email = 'tecnico@tu-dominio.com';
+```
+
+Al desactivar, el perfil debe conservarse con `estado = 'INACTIVO'`; no se
+elimina el usuario ni sus datos históricos. Un perfil `tecnico` no puede usar
+las rutas `/tecnicos` y debe recibir `403`.
 
 ## Verificar el resultado
 

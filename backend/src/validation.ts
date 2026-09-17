@@ -17,12 +17,17 @@ export const clienteSchema = z.object({
   estado: z.enum(["ACTIVO", "INACTIVO"]).default("ACTIVO"),
 });
 
-export const tecnicoSchema = z.object({
+const tecnicoFieldsSchema = z.object({
   nombre: z.string().trim().min(2).max(120),
   telefono: z.string().trim().max(40).optional().or(z.literal("")),
   especialidad: z.string().trim().max(120).optional().or(z.literal("")),
-  estado: z.enum(["ACTIVO", "INACTIVO"]).default("ACTIVO"),
-});
+}).strict();
+
+export const tecnicoCreateSchema = tecnicoFieldsSchema.extend({
+  email: z.string().trim().email().max(160),
+}).strict();
+
+export const tecnicoUpdateSchema = tecnicoFieldsSchema;
 
 export const ordenSchema = z.object({
   cliente_id: z.string().uuid(),

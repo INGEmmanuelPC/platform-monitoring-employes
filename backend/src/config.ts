@@ -16,5 +16,8 @@ export const config = {
   supabaseUrl: process.env.SUPABASE_URL ?? required("EXPO_PUBLIC_SUPABASE_URL"),
   supabaseAnonKey:
     process.env.SUPABASE_ANON_KEY ?? required("EXPO_PUBLIC_SUPABASE_ANON_KEY"),
+  // Esta clave sólo existe en el proceso confiable del backend. Nunca debe
+  // copiarse a Expo ni a una variable EXPO_PUBLIC_*.
+  supabaseServiceRoleKey: required("SUPABASE_SERVICE_ROLE_KEY"),
   corsOrigin: process.env.CORS_ORIGIN ?? "*",
 };

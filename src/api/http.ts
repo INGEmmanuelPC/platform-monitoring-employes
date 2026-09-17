@@ -20,7 +20,9 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   const body = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(body?.error ?? "No fue posible completar la solicitud.");
+    const revision = response.headers.get("x-backend-revision");
+    const source = revision ? ` [API: ${revision}]` : "";
+    throw new Error(`${body?.error ?? "No fue posible completar la solicitud."}${source}`);
   }
 
   return body as T;
