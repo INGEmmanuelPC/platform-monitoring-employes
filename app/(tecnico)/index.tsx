@@ -8,8 +8,8 @@ import { useTrabajos } from "@/src/data/use-trabajos";
 // Pantalla de arranque. Es lo primero que ve el técnico al abrir la app y
 // tiene que responder una sola pregunta: ¿qué me toca ahora?
 export default function HoyScreen() {
-  const { trabajos, loading } = useTrabajos();
-  const pendientes = trabajos.filter((t) => t.estado !== "CERRADO");
+  const { trabajos, loading, error } = useTrabajos();
+  const pendientes = trabajos.filter((t) => t.estado !== "COMPLETADO" && t.estado !== "CERRADO");
 
   return (
     <ScrollView className="flex-1 bg-neutral-50">
@@ -17,6 +17,7 @@ export default function HoyScreen() {
         <Text className="text-sm text-neutral-500">{pendientes.length} trabajos para hoy</Text>
 
         {loading ? <ActivityIndicator color="#0a7ea4" /> : null}
+        {error ? <Text className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</Text> : null}
         {!loading && pendientes.length === 0 ? (
           <Text className="rounded-xl border border-neutral-200 bg-white p-4 text-sm text-neutral-600">
             No tienes trabajos asignados.

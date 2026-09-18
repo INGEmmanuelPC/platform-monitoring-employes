@@ -59,7 +59,7 @@ no solo el código.
 | App móvil | Expo SDK 54 + expo-router | TypeScript estricto, rutas por archivos |
 | Estilos | NativeWind v5 + Tailwind v4 | Ya instalado y funcionando |
 | BD local | `expo-sqlite` con SQL explícito | **Sin ORM a propósito**: el núcleo de sincronización necesita control directo de las transacciones |
-| Backend | Supabase | Postgres + auth con RLS + storage |
+| Backend | Node.js + Express | API HTTP; Supabase detrás para Postgres, auth, RLS y storage |
 | Panel admin | Next.js + Tailwind | Aún no empieza |
 | Estado en móvil | Zustand | **No React Query**: la fuente de verdad es SQLite, no un caché de red |
 | Transcripción | Servicio de STT aparte | La API de Claude **no recibe audio**: primero se transcribe, después se redacta |
@@ -92,12 +92,12 @@ Ya existe:
 - `components/` — `Button`, `Field`, `IndicadorSync`, `IconSymbol`
 - NativeWind v5 configurado y verificado en dispositivo
 
-Ya existe la base inicial de SQLite y la lectura local/remota de trabajos. Aún
-no existe: cola de sincronización operativa, backend propio, cámara real, audio
-real, lienzo de firma ni panel de administrador.
+Ya existe la base inicial de SQLite, una cola de sincronización operativa, el
+backend HTTP y la lectura local/remota de trabajos. Aún no existe: audio real,
+lienzo de firma ni panel de administrador.
 
 Los estados y etiquetas de `constants/trabajos.ts` son contratos de dominio; los
-datos de trabajos viven en SQLite y se refrescan desde Supabase.
+datos de trabajos viven en SQLite y se refrescan desde el backend HTTP.
 
 ## Trampas ya conocidas — no las "arregles"
 

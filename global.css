@@ -1,3 +1,8 @@
+@config "./tailwind.config.js";
+@source "./app/**/*.{js,jsx,ts,tsx}";
+@source "./components/**/*.{js,jsx,ts,tsx}";
+@source "./src/**/*.{js,jsx,ts,tsx}";
+
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/preflight.css" layer(base);
 @import "tailwindcss/utilities.css";

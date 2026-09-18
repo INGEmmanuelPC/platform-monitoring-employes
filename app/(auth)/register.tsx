@@ -58,6 +58,7 @@ export default function RegisterScreen() {
               label="Nombre"
               placeholder="Tu nombre"
               autoCapitalize="words"
+              maxLength={120}
               rules={{ required: "Ingresa tu nombre." }}
             />
             <Field
@@ -67,6 +68,7 @@ export default function RegisterScreen() {
               placeholder="tu@correo.com"
               keyboardType="email-address"
               autoComplete="email"
+              maxLength={160}
               rules={{
                 required: "Ingresa tu correo electrónico.",
                 pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Ingresa un correo válido." },
@@ -79,6 +81,7 @@ export default function RegisterScreen() {
               placeholder="Mínimo 6 caracteres"
               secureTextEntry
               autoComplete="new-password"
+              maxLength={128}
               rules={{
                 required: "Ingresa una contraseña.",
                 minLength: { value: 6, message: "Usa al menos 6 caracteres." },
@@ -91,6 +94,7 @@ export default function RegisterScreen() {
               placeholder="Repite tu contraseña"
               secureTextEntry
               autoComplete="new-password"
+              maxLength={128}
               rules={{
                 required: "Confirma tu contraseña.",
                 validate: (value) => value === password || "Las contraseñas no coinciden.",
