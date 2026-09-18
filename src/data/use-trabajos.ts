@@ -1,10 +1,11 @@
 import { useSQLiteContext } from "expo-sqlite";
-import { useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 
-import { supabase } from "@/src/api/client";
 import { useAuth } from "@/src/session/AuthProvider";
+import { listEntities } from "@/src/api/entities";
 
-import { getTrabajos, upsertTrabajos } from "./trabajos";
+import { getTrabajos, processSyncQueue, upsertTrabajos } from "./trabajos";
 import type { TrabajoLocal } from "./types";
 
 export function useTrabajos() {
@@ -12,8 +13,9 @@ export function useTrabajos() {
   const { session } = useAuth();
   const [trabajos, setTrabajos] = useState<TrabajoLocal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     let active = true;
     const userId = session?.user.id;
 
@@ -28,24 +30,18 @@ export function useTrabajos() {
 
     async function loadTrabajos() {
       setLoading(true);
+      setError(null);
+      await processSyncQueue(database).catch(() => undefined);
       const localTrabajos = await getTrabajos(database, authenticatedUserId);
       if (active) {
         setTrabajos(localTrabajos);
       }
 
-      const { data, error } = await supabase
-        .from("trabajos")
-        .select(
-          "id, tecnico_id, cliente, direccion, descripcion, hora_programada, estado, sync, reporte, created_at, updated_at",
-        )
-        .eq("tecnico_id", authenticatedUserId);
-
-      if (!error && data?.length) {
-        await upsertTrabajos(database, data as TrabajoLocal[]);
+      const remoteTrabajos = await listEntities("ordenes", "");
+      if (remoteTrabajos.length) {
+        await upsertTrabajos(database, remoteTrabajos as TrabajoLocal[]);
         const refreshedTrabajos = await getTrabajos(database, authenticatedUserId);
-        if (active) {
-          setTrabajos(refreshedTrabajos);
-        }
+        if (active) setTrabajos(refreshedTrabajos);
       }
 
       if (active) {
@@ -55,6 +51,7 @@ export function useTrabajos() {
 
     loadTrabajos().catch(() => {
       if (active) {
+        setError("No se pudieron cargar los trabajos. Comprueba que el backend esté activo.");
         setLoading(false);
       }
     });
@@ -62,7 +59,7 @@ export function useTrabajos() {
     return () => {
       active = false;
     };
-  }, [database, session?.user.id]);
+  }, [database, session?.user.id]));
 
-  return { trabajos, loading };
+  return { trabajos, loading, error };
 }

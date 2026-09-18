@@ -59,7 +59,7 @@ no solo el código.
 | App móvil | Expo SDK 54 + expo-router | TypeScript estricto, rutas por archivos |
 | Estilos | NativeWind v5 + Tailwind v4 | Ya instalado y funcionando |
 | BD local | `expo-sqlite` con SQL explícito | **Sin ORM a propósito**: el núcleo de sincronización necesita control directo de las transacciones |
-| Backend | Supabase | Postgres + auth con RLS + storage |
+| Backend | Node.js + Express | API HTTP; Supabase detrás para Postgres, auth, RLS y storage |
 | Panel admin | Next.js + Tailwind | Aún no empieza |
 | Estado en móvil | Zustand | **No React Query**: la fuente de verdad es SQLite, no un caché de red |
 | Transcripción | Servicio de STT aparte | La API de Claude **no recibe audio**: primero se transcribe, después se redacta |
@@ -92,12 +92,12 @@ Ya existe:
 - `components/` — `Button`, `Field`, `IndicadorSync`, `IconSymbol`
 - NativeWind v5 configurado y verificado en dispositivo
 
-Ya existe la base inicial de SQLite y la lectura local/remota de trabajos. Aún
-no existe: cola de sincronización operativa, backend propio, cámara real, audio
-real, lienzo de firma ni panel de administrador.
+Ya existe la base inicial de SQLite, una cola de sincronización operativa, el
+backend HTTP y la lectura local/remota de trabajos. Aún no existe: audio real,
+lienzo de firma ni panel de administrador.
 
 Los estados y etiquetas de `constants/trabajos.ts` son contratos de dominio; los
-datos de trabajos viven en SQLite y se refrescan desde Supabase.
+datos de trabajos viven en SQLite y se refrescan desde el backend HTTP.
 
 ## Trampas ya conocidas — no las "arregles"
 
@@ -114,6 +114,47 @@ datos de trabajos viven en SQLite y se refrescan desde Supabase.
 - **`typedRoutes` está activo.** Al agregar o mover rutas hay que arrancar el
   servidor una vez para regenerar los tipos, o el chequeo de tipos falla con
   rutas fantasma.
+
+- **`backend/tsconfig.json` es autónomo a propósito.** No extiende
+  `expo/tsconfig.base` ni incluye `nativewind-env.d.ts`. El backend es Node con
+  `moduleResolution: NodeNext`, no React Native: la base de Expo le mete `jsx`,
+  tipos del DOM y `moduleResolution: bundler`. Además `expo` no existe en
+  `backend/node_modules` — un `extends` a Expo solo resuelve porque TypeScript
+  sube hasta la raíz, así que el backend dejaría de compilar el día que se
+  mueva a su propio repositorio. Ya venía mal una vez; no lo repitas.
+
+- **La raíz excluye `backend/` del chequeo de tipos.** Cada proyecto revisa lo
+  suyo: `npx tsc --noEmit` en la raíz para la app, `npm run typecheck` dentro de
+  `backend/` para el servidor. Si quitas ese `exclude`, el código del servidor
+  se revisa con la configuración de React Native, lo que inventa errores falsos
+  y esconde los reales.
+
+- **Un `.d.ts` generado dentro de `backend/` es basura, bórralo.** Herramientas
+  de la app (NativeWind entre ellas) generan archivos si alguien las corre desde
+  esa carpeta. No van versionados y no le sirven a un servidor Express.
+
+- **En Windows con WSL2, el QR de Expo Go que se queda cargando para siempre
+  casi nunca es un bug de la app.** Antes de tocar código, revisa en este
+  orden:
+  1. ¿El backend sigue corriendo? (`ss -ltn | grep :3000`). Reiniciar WSL
+     (`wsl --shutdown`), cerrar la terminal o que el equipo se suspenda mata
+     todos los procesos de dentro, backend incluido.
+  2. ¿`EXPO_PUBLIC_API_URL` en `.env.local` tiene la IP **de ahora**? Cambia
+     en cada red distinta. Verifica con `ip -4 addr show | grep inet` y, si
+     no coincide, corrige y reinicia Expo con `-c` (sin eso sirve el bundle
+     viejo con la IP anterior incrustada).
+  3. ¿El firewall de Windows bloquea la entrada? Si la red aparece como
+     "Pública" (`Get-NetConnectionProfile` en PowerShell), su política por
+     defecto es `BlockInbound`. Hace falta una regla explícita por puerto —
+     una regla para "node.exe" no sirve porque no cubre lo que corre dentro
+     de WSL2:
+     ```powershell
+     netsh advfirewall firewall add rule name="Metro 8081" dir=in action=allow protocol=TCP localport=8081 profile=any
+     netsh advfirewall firewall add rule name="Backend API 3000" dir=in action=allow protocol=TCP localport=3000 profile=any
+     ```
+  4. Antes de escanear el QR, prueba desde el navegador del celular
+     `http://<IP>:3000/health`. Si eso también da timeout, el problema es de
+     red (firewall o router), no de Expo — no pierdas tiempo mirando el código.
 
 ## Cómo trabajamos
 

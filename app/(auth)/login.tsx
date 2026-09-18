@@ -51,6 +51,7 @@ export default function LoginScreen() {
               placeholder="tu@correo.com"
               keyboardType="email-address"
               autoComplete="email"
+              maxLength={160}
               rules={{
                 required: "Ingresa tu correo electrónico.",
                 pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Ingresa un correo válido." },
@@ -63,6 +64,7 @@ export default function LoginScreen() {
               placeholder="Tu contraseña"
               secureTextEntry
               autoComplete="password"
+              maxLength={128}
               rules={{ required: "Ingresa tu contraseña." }}
             />
           </View>

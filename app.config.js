@@ -7,6 +7,7 @@ module.exports = {
     plugins: [...(appJson.expo.plugins ?? []), "expo-sqlite"],
     extra: {
       ...appJson.expo.extra,
+      apiUrl: process.env.EXPO_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_URL,
       supabaseUrl:
         process.env.EXPO_PUBLIC_SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL,
       supabaseAnonKey:

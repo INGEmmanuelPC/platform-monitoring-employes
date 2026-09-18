@@ -12,6 +12,8 @@ export async function initializeDatabase(database: SQLiteDatabase) {
       descripcion TEXT NOT NULL DEFAULT '',
       hora_programada TEXT,
       llegada_at TEXT,
+      hora_salida TEXT,
+      observaciones TEXT NOT NULL DEFAULT '',
       estado TEXT NOT NULL DEFAULT 'ASIGNADO',
       sync TEXT NOT NULL DEFAULT 'SOLO_LOCAL',
       reporte TEXT NOT NULL DEFAULT 'SIN_AUDIO',
@@ -51,4 +53,6 @@ export async function initializeDatabase(database: SQLiteDatabase) {
   } catch {
     // La columna ya existe en bases inicializadas anteriormente.
   }
+  try { await database.execAsync("ALTER TABLE trabajos ADD COLUMN hora_salida TEXT"); } catch { }
+  try { await database.execAsync("ALTER TABLE trabajos ADD COLUMN observaciones TEXT NOT NULL DEFAULT ''"); } catch { }
 }
