@@ -4,8 +4,8 @@ Clases de NativeWind que ya utiliza la aplicación móvil. Esta guía documenta
 el código existente; no reemplaza la configuración de NativeWind v5/Tailwind v4.
 
 Regla base: antes de repetir una combinación visual, busca un componente ya
-existente en `components/`, especialmente `Button`, `Field`, `IconSymbol` y
-`EntityScreens`.
+existente en `components/`, especialmente `Button`, `Field`, `Select`,
+`IconSymbol` y `EntityScreens`.
 
 ---
 
@@ -68,6 +68,18 @@ añaden con `className`, por ejemplo `bg-red-600` para eliminar.
 Usar `components/Field.tsx` únicamente con `react-hook-form`. Incluye etiqueta,
 `TextInput`, borde de error y mensaje de validación. Los campos libres, como el
 buscador del CRUD, usan `rounded-lg border border-neutral-300 bg-white p-3`.
+
+Todos los formularios del CRUD (`components/EntityScreens.tsx`) usan `Field` con
+`react-hook-form`, igual que login y registro. Al editar, `reset()` fija el
+valor original y `formState.dirtyFields` decide qué campos viajan en el
+`PATCH` — nunca se reenvía el objeto completo.
+
+### Selección de una opción
+
+Usar `components/Select.tsx` con `react-hook-form` cuando hay que elegir un
+valor de una lista corta (por ejemplo, el cliente de una orden). Mismo
+contrato que `Field`: `control`, `name`, `label`, `rules`. Cada opción es un
+botón; la seleccionada usa `border-blue-600 bg-blue-50 text-blue-700`.
 
 ### Tarjetas y listas
 

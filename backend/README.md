@@ -69,3 +69,29 @@ usarlas.
 `GET /health` devuelve la revisión y hora de inicio de la instancia actual.
 Úsalo al depurar dispositivos físicos para confirmar que Expo llama al backend
 esperado.
+
+## Configuración de TypeScript: no la "arregles" copiando la de la app
+
+`backend/tsconfig.json` es **autónomo a propósito**. No extiende
+`expo/tsconfig.base` ni incluye `nativewind-env.d.ts`, y no debe hacerlo:
+
+- **Esto es Node, no React Native.** La base de Expo trae `jsx`, tipos del DOM
+  y `moduleResolution: bundler`. El servidor necesita `NodeNext`.
+- **`expo` no está en `backend/node_modules`.** Un `extends` a un paquete de
+  Expo solo resuelve porque TypeScript sube hasta el `node_modules` de la raíz.
+  Funciona por la disposición de las carpetas, no por diseño: el día que el
+  backend se mueva a su propio repositorio, deja de compilar.
+- **`nativewind-env.d.ts` declara la prop `className`** de componentes de React
+  Native. Un servidor Express no renderiza componentes.
+
+El `tsconfig.json` de la raíz **excluye** esta carpeta, así que cada proyecto
+revisa lo suyo:
+
+| Dónde | Comando | Qué revisa |
+| --- | --- | --- |
+| Raíz | `npx tsc --noEmit` | Solo la app móvil |
+| `backend/` | `npm run typecheck` | Solo el servidor |
+
+Si la raíz vuelve a incluir `backend/`, el código del servidor se revisa con la
+configuración de React Native: eso puede inventar errores que no existen y, peor,
+esconder errores que sí.
