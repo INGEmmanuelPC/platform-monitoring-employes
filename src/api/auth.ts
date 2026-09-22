@@ -23,7 +23,8 @@ export async function register(input: RegisterInput) {
       body: JSON.stringify(input),
     });
     if (result.session) {
-      await supabase.auth.setSession(result.session);
+      const { error } = await supabase.auth.setSession(result.session);
+      if (error) throw error;
     }
     return { data: result, error: null };
   } catch (error) {
@@ -40,7 +41,8 @@ export async function login(email: string, password: string) {
     if (!result.session) {
       throw new Error("El servidor no devolvió una sesión válida.");
     }
-    await supabase.auth.setSession(result.session);
+    const { error } = await supabase.auth.setSession(result.session);
+    if (error) throw error;
     return { data: result, error: null };
   } catch (error) {
     return { data: { user: null, session: null }, error: toAuthError(error) };
@@ -66,6 +68,9 @@ export function getAuthErrorMessage(error: AuthError, action: AuthAction) {
 
   if (normalizedMessage.includes("email not confirmed")) {
     return "Confirma tu correo electrónico antes de iniciar sesión.";
+  }
+  if (normalizedMessage.includes("invalid refresh token") || normalizedMessage.includes("session missing")) {
+    return "No se pudo guardar la sesión. Cierra Expo Go por completo y vuelve a abrir la aplicación.";
   }
   if (normalizedMessage.includes("invalid login credentials")) {
     return "El correo o la contraseña no son correctos.";
@@ -96,7 +101,7 @@ export function getAuthErrorMessage(error: AuthError, action: AuthAction) {
     normalizedMessage.includes("failed to fetch") ||
     normalizedMessage.includes("network request failed")
   ) {
-    return "No hay conexión con el backend. Comprueba que el celular esté en la misma red y que la API esté activa.";
+    return "No se pudo conectar con el servicio de inicio de sesión. Comprueba que el celular tenga acceso a internet e inténtalo de nuevo.";
   }
 
   return action === "login"
