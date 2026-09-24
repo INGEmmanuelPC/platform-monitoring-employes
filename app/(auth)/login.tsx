@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 
+import { BrandHeader } from "@/components/BrandHeader";
 import { Button } from "@/components/Button";
 import Field from "@/components/Field";
 import { getAuthErrorMessage, login } from "@/src/api/auth";
@@ -37,9 +38,10 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerClassName="flex-grow justify-center p-6">
-        <View className="gap-6 rounded-xl border border-neutral-200 bg-white p-5">
+        <BrandHeader />
+        <View className="mt-6 gap-6 rounded-xl border border-neutral-200 bg-white p-5">
           <View className="gap-1">
-            <Text className="text-3xl font-bold text-neutral-900">Iniciar sesión</Text>
+            <Text className="font-display text-2xl text-neutral-900">Iniciar sesión</Text>
             <Text className="text-sm text-neutral-600">Accede a tus trabajos del día.</Text>
           </View>
 

@@ -4,6 +4,7 @@ import { HapticTab } from "@/components/haptic-tab";
 import { IndicadorSync } from "@/components/indicador-sync";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
+import { Fonts } from "@/constants/fonts";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 // Tres pestañas y no más. Cada una es un LUGAR al que el técnico vuelve.
@@ -20,7 +21,7 @@ export default function TecnicoLayout() {
         headerRight: () => <IndicadorSync />,
         // Objetivo blanco grande: el técnico usa la app cansado, de pie y
         // muchas veces con guantes.
-        tabBarLabelStyle: { fontSize: 13 },
+        tabBarLabelStyle: { fontSize: 13, fontFamily: Fonts.button },
         tabBarStyle: { height: 64, paddingTop: 6, paddingBottom: 8 },
       }}
     >
