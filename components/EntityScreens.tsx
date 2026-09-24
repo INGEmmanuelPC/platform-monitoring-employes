@@ -119,7 +119,7 @@ export function EntityListScreen({ entity }: { entity: EntityName }) {
     <ScrollView className="flex-1 bg-neutral-50">
       <View className="gap-4 p-4">
         <View className="flex-row items-center justify-between">
-          <Text className="text-2xl font-bold text-neutral-900">{definition.title}</Text>
+          <Text className="font-display text-2xl text-neutral-900">{definition.title}</Text>
           <Button text="Nuevo" onPress={() => router.push(createPaths[entity] as never)} />
         </View>
         <TextInput className="rounded-lg border border-neutral-300 bg-white p-3" placeholder="Buscar" value={search} onChangeText={setSearch} />
@@ -228,7 +228,7 @@ export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: b
       contentContainerClassName="gap-4 p-4"
       keyboardShouldPersistTaps="handled"
     >
-      <Text className="text-2xl font-bold text-neutral-900">
+      <Text className="font-display text-2xl text-neutral-900">
         {edit ? "Editar" : "Nuevo"} {definition.title.slice(0, -1)}
       </Text>
 

@@ -133,6 +133,15 @@ datos de trabajos viven en SQLite y se refrescan desde el backend HTTP.
   de la app (NativeWind entre ellas) generan archivos si alguien las corre desde
   esa carpeta. No van versionados y no le sirven a un servidor Express.
 
+- **De `@expo-google-fonts/*`, importa siempre por subruta de peso, nunca del
+  paquete raíz.** `import { X } from "@expo-google-fonts/archivo"` empaqueta
+  las **18** variantes de esa familia (cada una es un `require()` en el mismo
+  `index.js`), aunque solo uses una. `import { X } from
+  "@expo-google-fonts/archivo/700Bold"` empaqueta solo esa. Verificado con
+  `npx expo export --platform android`: el barrel se llevaba ~5.3 MB de fuentes
+  sin usar al `dist/`; por subruta, ~560 KB. Los pesos que carga la app viven en
+  `constants/fonts.ts` y se registran en `app/_layout.tsx`.
+
 - **En Windows con WSL2, el QR de Expo Go que se queda cargando para siempre
   casi nunca es un bug de la app.** Antes de tocar código, revisa en este
   orden:

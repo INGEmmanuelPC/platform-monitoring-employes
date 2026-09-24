@@ -43,16 +43,48 @@ existente en `components/`, especialmente `Button`, `Field`, `Select`,
 Se usa `gap-*` para separar elementos relacionados: `gap-1` dentro de grupos
 cortos, `gap-3` en tarjetas y `gap-4` entre bloques de una pantalla.
 
+## Marca
+
+Nombre: **Cuadrilla**. Eslogan: *"El trabajo lo haces tú. El reporte, solo."*
+Logo: marca de pin de ubicación + check (`components/ui/icon-symbol.tsx`
+reutiliza el mismo concepto en `mappin.and.ellipse` +
+`checkmark.circle.fill`), en dos archivos con transparencia real:
+
+- `assets/images/logotype-navy.png` — marca principal, navy `#1B4965`. Se usa
+  en `components/BrandHeader.tsx` (login y registro) y como imagen de splash
+  screen (`app.json` → `expo.plugins` → `expo-splash-screen.image`).
+- `assets/images/logotype-black.png` — capa monocromática del ícono adaptativo
+  de Android (`app.json` → `expo.android.adaptiveIcon.monochromeImage`).
+
+El logo **no va en las pestañas del técnico**: ver el comentario en
+`app/(tecnico)/_layout.tsx` sobre el objetivo grande para alguien cansado y de
+pie. Vive solo en los puntos de entrada (`BrandHeader`, splash, ícono).
+
 ## Tipografía
 
-| Uso | Clases utilizadas |
-| --- | --- |
-| Título de pantalla | `text-2xl font-bold text-neutral-900` |
-| Título de tarjeta | `text-lg font-semibold text-neutral-900` |
-| Texto de lista | `text-base font-semibold text-neutral-900` |
-| Descripción | `text-sm text-neutral-600` |
-| Metadato | `text-xs text-neutral-500` / `text-xs text-neutral-400` |
-| Error | `text-sm text-red-600` |
+Dos familias, tres pesos, cargados con `useFonts` en `app/_layout.tsx` y
+expuestos como utilidades de Tailwind en `tailwind.config.js`
+(`theme.extend.fontFamily`). Los nombres literales de cada peso viven en
+`constants/fonts.ts` — hacen falta tal cual porque React Native no sintetiza
+pesos de una fuente custom.
+
+| Uso | Clase / fuente | Por qué |
+| --- | --- | --- |
+| Nombre de marca, eslogan de pantalla, títulos de menú/pantalla (tabs, headers de Stack, listas y formularios del CRUD) | `font-display` → Archivo Bold | Geométrica y reconocible de un vistazo; es lo que representa a Cuadrilla como marca. |
+| Eslogan bajo el nombre de marca (`BrandHeader`) | `font-slogan` → IBM Plex Sans Regular | Pensada para documentación técnica: legible y sin ambigüedad, coherente con "ayudar a comunicar mejor sin importar la conectividad". |
+| Texto de botones (`components/Button.tsx`) | `font-button` → IBM Plex Sans SemiBold | Misma familia que el eslogan, un peso más alto para acción. |
+| Título de pantalla (genérico, sin marca) | `text-2xl font-bold text-neutral-900` | Texto de sistema; no todo título necesita `font-display`. |
+| Título de tarjeta | `text-lg font-semibold text-neutral-900` | |
+| Texto de lista | `text-base font-semibold text-neutral-900` | |
+| Descripción | `text-sm text-neutral-600` | |
+| Metadato | `text-xs text-neutral-500` / `text-xs text-neutral-400` | |
+| Error | `text-sm text-red-600` | |
+
+**Trampa de bundle:** importar de `@expo-google-fonts/archivo` o
+`@expo-google-fonts/ibm-plex-sans` a secas empaqueta las variantes completas
+de la familia (18 y 14 pesos respectivamente), aunque solo se use una. Hay que
+importar por subruta de peso (`@expo-google-fonts/archivo/700Bold`). Detalle
+completo en `AGENTS.md` → "Trampas ya conocidas".
 
 ## Componentes reutilizables
 

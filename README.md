@@ -345,6 +345,10 @@ Implementado y validado por compilación/arranque:
   `role = 'admin'` puede crear, modificar o desactivar técnicos, reforzado en
   backend (`requireAdmin`) y en RLS (`private.is_admin()`).
 - Subida diferida de evidencias mediante Storage.
+- Identidad de marca (nombre "Cuadrilla", eslogan, logo con transparencia
+  real, tipografía Archivo/IBM Plex Sans) aplicada en login, registro, splash
+  screen e ícono monocromático de Android. Detalle en `ESTILOS.md` y
+  `docs/adr/0005-identidad-marca-tipografia.md`.
 
 Pendiente de validación manual con Supabase y dispositivo:
 
