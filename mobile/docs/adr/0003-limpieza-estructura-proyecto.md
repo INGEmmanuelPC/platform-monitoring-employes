@@ -21,9 +21,9 @@ Se conservan las carpetas actuales porque representan límites funcionales claro
 - `src/api/`: integración remota y autenticación.
 - `src/data/`: SQLite, repositorios y datos locales.
 - `src/session/`: sesión y protección de rutas.
-- `components/`: UI reutilizable de la app.
-- `constants/`: contratos de dominio y tema compartido.
-- `hooks/`: hooks globales aún utilizados.
+- `src/components/`: UI reutilizable de la app.
+- `src/constants/`: contratos de dominio y tema compartido.
+- `src/hooks/`: hooks globales aún utilizados.
 - `docs/`: decisiones y documentación operativa.
 
 No se introduce una capa adicional de carpetas sin una responsabilidad real.

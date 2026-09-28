@@ -9,7 +9,7 @@ bloquear cuentas mediante Supabase Auth Admin.
 ## Requisitos
 
 - Node.js LTS y npm.
-- Un proyecto de Supabase con las migraciones de `../docs/supabase/` aplicadas.
+- Un proyecto de Supabase con las migraciones de `../mobile/docs/supabase/` aplicadas.
 
 ## Configuración
 
@@ -21,7 +21,7 @@ npm install
 npm run dev
 ```
 
-Configura estas variables en `backend/.env` sin versionar valores reales:
+Configura estas variables en `.env` sin versionar valores reales:
 
 | Variable | Uso |
 | --- | --- |
@@ -32,7 +32,7 @@ Configura estas variables en `backend/.env` sin versionar valores reales:
 | `CORS_ORIGIN` | Origen permitido por CORS; por defecto `*` para desarrollo. |
 
 Como respaldo local, el servidor puede leer `EXPO_PUBLIC_SUPABASE_URL` y
-`EXPO_PUBLIC_SUPABASE_ANON_KEY` desde el `.env.local` de la raíz.
+`EXPO_PUBLIC_SUPABASE_ANON_KEY` desde `../mobile/.env.local`.
 
 La aplicación móvil debe enviar el access token de Supabase como:
 
@@ -69,3 +69,25 @@ usarlas.
 `GET /health` devuelve la revisión y hora de inicio de la instancia actual.
 Úsalo al depurar dispositivos físicos para confirmar que Expo llama al backend
 esperado.
+<<<<<<< Updated upstream
+=======
+
+## Configuración de TypeScript: no la "arregles" copiando la de la app
+
+`tsconfig.json` es **autónomo a propósito**. No extiende
+`expo/tsconfig.base` ni incluye `nativewind-env.d.ts`, y no debe hacerlo:
+
+- **Esto es Node, no React Native.** La base de Expo trae `jsx`, tipos del DOM
+  y `moduleResolution: bundler`. El servidor necesita `NodeNext`.
+- **`expo` no está en `node_modules` del backend.** El backend y la app móvil son
+  módulos hermanos e instalan sus propias dependencias.
+- **`nativewind-env.d.ts` declara la prop `className`** de componentes de React
+  Native. Un servidor Express no renderiza componentes.
+
+Cada proyecto usa su propio `tsconfig.json` y revisa lo suyo:
+
+| Dónde | Comando | Qué revisa |
+| --- | --- | --- |
+| `mobile/` | `npx tsc --noEmit` | Solo la app móvil |
+| `backend/` | `npm run typecheck` | Solo el servidor |
+>>>>>>> Stashed changes

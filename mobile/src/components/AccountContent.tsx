@@ -1,7 +1,12 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSQLiteContext } from "expo-sqlite";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 import { Button } from "@/components/Button";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -9,9 +14,7 @@ import { useTrabajos } from "@/src/data/use-trabajos";
 import { processSyncQueue } from "@/src/data/trabajos";
 import { useAuth } from "@/src/session/AuthProvider";
 
-// Además del perfil, aquí vive el detalle de la cola de sincronización: es
-// donde el técnico confirma que no perdió trabajo cuando estuvo sin señal.
-export default function CuentaScreen() {
+export function AccountContent() {
   const router = useRouter();
   const database = useSQLiteContext();
   const { session, signOut } = useAuth();
@@ -22,6 +25,23 @@ export default function CuentaScreen() {
   const displayName = session?.user.user_metadata.full_name ?? "Técnico";
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [contentHeight, setContentHeight] = useState(0);
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = withTiming(isOpen ? 1 : 0, { duration: 300 });
+  }, [isOpen, progress]);
+
+  const gestionMenuStyle = useAnimatedStyle(() => ({
+    height: progress.value * contentHeight,
+    opacity: progress.value,
+    overflow: "hidden",
+  }));
+
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${progress.value * 180}deg` }],
+  }));
 
   const syncNow = async () => {
     setSyncing(true);
@@ -74,10 +94,45 @@ export default function CuentaScreen() {
         </View>
 
         <View className="gap-2 rounded-xl border border-neutral-200 bg-white p-4">
-          <Text className="text-base font-semibold text-neutral-900">Gestión</Text>
-          <Button text="Técnicos" onPress={() => router.push("/crud/tecnicos" as never)} />
-          <Button text="Clientes" onPress={() => router.push("/crud/clientes" as never)} />
-          <Button text="Órdenes de trabajo" onPress={() => router.push("/crud/ordenes" as never)} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: isOpen }}
+            onPress={() => setIsOpen((open) => !open)}
+          >
+            <View className="flex-row items-center justify-between">
+              <Text className="text-base font-semibold text-neutral-900">Gestión</Text>
+              <Animated.View style={chevronStyle}>
+                <Text className="text-xl text-neutral-700">▼</Text>
+              </Animated.View>
+            </View>
+          </Pressable>
+
+          <Animated.View style={gestionMenuStyle}>
+            <View className="gap-2">
+              <Button text="Técnicos" onPress={() => router.push("/crud/tecnicos" as never)} />
+              <Button text="Clientes" onPress={() => router.push("/crud/clientes" as never)} />
+              <Button text="Órdenes de trabajo" onPress={() => router.push("/crud/ordenes" as never)} />
+            </View>
+          </Animated.View>
+
+          <View
+            pointerEvents="none"
+            accessible={false}
+            importantForAccessibility="no-hide-descendants"
+            style={{ position: "absolute", top: 44, left: 16, right: 16, opacity: 0 }}
+            onLayout={(event) => {
+              const measuredHeight = event.nativeEvent.layout.height;
+              if (measuredHeight > 0 && measuredHeight !== contentHeight) {
+                setContentHeight(measuredHeight);
+              }
+            }}
+          >
+            <View className="gap-2">
+              <Button text="Técnicos" onPress={() => router.push("/crud/tecnicos" as never)} />
+              <Button text="Clientes" onPress={() => router.push("/crud/clientes" as never)} />
+              <Button text="Órdenes de trabajo" onPress={() => router.push("/crud/ordenes" as never)} />
+            </View>
+          </View>
         </View>
 
         <Button text="Cerrar sesión" onPress={signOut} />

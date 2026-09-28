@@ -94,8 +94,8 @@ sube solo. Ocuparía una pestaña sin merecerla.
 
 - Los íconos usan `IconSymbol`, que da SF Symbols nativos en iOS y Material Icons
   en Android y web. Todo ícono nuevo debe agregarse al mapa de
-  `components/ui/icon-symbol.tsx` o no se dibuja nada.
-- Los estados que se muestran salen de `constants/trabajos.ts`, que ya separa los
+  `src/components/ui/icon-symbol.tsx` o no se dibuja nada.
+- Los estados que se muestran salen de `src/constants/trabajos.ts`, que ya separa los
   **tres ejes** (trabajo, sincronización, reporte). Ese archivo es el germen del
   contrato compartido; cuando exista el paquete común, se muda allá.
 - Los datos son de ejemplo y están marcados como tales. Se reemplazan por SQLite
