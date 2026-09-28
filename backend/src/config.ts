@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 
 dotenv.config();
-dotenv.config({ path: "../.env.local" });
+dotenv.config({ path: "../mobile/.env.local" });
 
 const required = (name: string) => {
   const value = process.env[name];

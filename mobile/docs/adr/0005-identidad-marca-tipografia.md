@@ -29,11 +29,11 @@ app (login, registro, splash), acordado en una conversación previa.
     marca. IBM Plex se diseñó para documentación técnica; refuerza
     "comunicar con claridad" en vez de solo decorar.
   - **IBM Plex Sans SemiBold** (`font-button`) — texto de botones
-    (`components/Button.tsx`).
-- Los nombres literales de cada peso viven en `constants/fonts.ts` (React
+    (`src/components/Button.tsx`).
+  - Los nombres literales de cada peso viven en `src/constants/fonts.ts` (React
   Native no sintetiza pesos de una fuente custom) y se exponen como
   utilidades Tailwind vía `theme.extend.fontFamily` en `tailwind.config.js`.
-- Nuevo `components/BrandHeader.tsx` (logo + nombre + eslogan), usado en
+- Nuevo `src/components/BrandHeader.tsx` (logo + nombre + eslogan), usado en
   `app/(auth)/login.tsx` y `register.tsx`. **No** se agregó a
   `app/(tecnico)/_layout.tsx`: el logo vive solo en puntos de entrada, no en
   las pestañas del técnico (ver comentario existente sobre el objetivo grande
