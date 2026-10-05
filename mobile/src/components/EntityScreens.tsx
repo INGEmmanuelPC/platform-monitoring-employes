@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm, type RegisterOptions } from "react-hook-form";
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 import { Button } from "./Button";
 import FieldInput from "./Field";
@@ -116,7 +116,7 @@ export function EntityListScreen({ entity }: { entity: EntityName }) {
   useFocusEffect(loadEntities);
 
   return (
-    <ScrollView className="flex-1 bg-neutral-50">
+    <ScrollView className="flex-1 bg-neutral-50" keyboardShouldPersistTaps="handled">
       <View className="gap-4 p-4">
         <View className="flex-row items-center justify-between">
           <Text className="font-display text-2xl text-neutral-900">{definition.title}</Text>
@@ -223,55 +223,57 @@ export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: b
   };
 
   return (
-    <ScrollView
-      className="flex-1 bg-neutral-50"
-      contentContainerClassName="gap-4 p-4"
-      keyboardShouldPersistTaps="handled"
-    >
-      <Text className="font-display text-2xl text-neutral-900">
-        {edit ? "Editar" : "Nuevo"} {definition.title.slice(0, -1)}
-      </Text>
+    <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <ScrollView
+        className="flex-1 bg-neutral-50"
+        contentContainerClassName="gap-4 p-4 pb-8"
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text className="font-display text-2xl text-neutral-900">
+          {edit ? "Editar" : "Nuevo"} {definition.title.slice(0, -1)}
+        </Text>
 
-      {fields.map((field) =>
-        entity === "ordenes" && field.key === "cliente_id" ? (
-          <Select
-            key={field.key}
-            control={control}
-            name="cliente_id"
-            label="Cliente"
-            options={clients.map((client) => ({
-              value: client.id,
-              label: String(client.nombre ?? "Sin nombre"),
-            }))}
-            empty="Crea primero un cliente."
-            rules={field.required ? { required: "Selecciona un cliente." } : undefined}
-          />
-        ) : (
-          <FieldInput
-            key={field.key}
-            control={control}
-            name={field.key}
-            label={field.label}
-            multiline={field.multiline}
-            numberOfLines={field.multiline ? 5 : undefined}
-            textAlignVertical={field.multiline ? "top" : undefined}
-            className={field.multiline ? "h-32" : undefined}
-            maxLength={field.maxLength}
-            autoCapitalize={field.key === "nombre" ? "words" : "none"}
-            keyboardType={field.key === "email" ? "email-address" : "default"}
-            autoComplete={field.key === "email" ? "email" : undefined}
-            rules={fieldRules(field)}
-          />
-        ),
-      )}
+        {fields.map((field) =>
+          entity === "ordenes" && field.key === "cliente_id" ? (
+            <Select
+              key={field.key}
+              control={control}
+              name="cliente_id"
+              label="Cliente"
+              options={clients.map((client) => ({
+                value: client.id,
+                label: String(client.nombre ?? "Sin nombre"),
+              }))}
+              empty="Crea primero un cliente."
+              rules={field.required ? { required: "Selecciona un cliente." } : undefined}
+            />
+          ) : (
+            <FieldInput
+              key={field.key}
+              control={control}
+              name={field.key}
+              label={field.label}
+              multiline={field.multiline}
+              numberOfLines={field.multiline ? 5 : undefined}
+              textAlignVertical={field.multiline ? "top" : undefined}
+              className={field.multiline ? "h-32" : undefined}
+              maxLength={field.maxLength}
+              autoCapitalize={field.key === "nombre" ? "words" : "none"}
+              keyboardType={field.key === "email" ? "email-address" : "default"}
+              autoComplete={field.key === "email" ? "email" : undefined}
+              rules={fieldRules(field)}
+            />
+          ),
+        )}
 
-      {error ? <Text className="text-red-600">{error}</Text> : null}
-      <Button
-        text={isSubmitting ? "Guardando..." : "Guardar"}
-        onPress={handleSubmit(onSubmit)}
-        disabled={isSubmitting}
-      />
-    </ScrollView>
+        {error ? <Text className="text-red-600">{error}</Text> : null}
+        <Button
+          text={isSubmitting ? "Guardando..." : "Guardar"}
+          onPress={handleSubmit(onSubmit)}
+          disabled={isSubmitting}
+        />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
