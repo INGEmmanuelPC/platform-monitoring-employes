@@ -1,38 +1,14 @@
-import { useRouter } from "expo-router";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
 import { ActivityIndicator, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import Field from "@/components/Field";
-import { getAuthErrorMessage, login } from "@/src/api/auth";
 
 import { AuthFormLayout } from "./components/AuthFormLayout";
 import { AuthSwitchLink } from "./components/AuthSwitchLink";
-
-type LoginForm = {
-  email: string;
-  password: string;
-};
+import { useLogin } from "./hooks/useLogin";
 
 export default function LoginScreen() {
-  const router = useRouter();
-  const [serverError, setServerError] = useState<string | null>(null);
-  const { control, handleSubmit, formState: { isSubmitting } } = useForm<LoginForm>({
-    defaultValues: { email: "", password: "" },
-  });
-
-  const onSubmit = async (values: LoginForm) => {
-    setServerError(null);
-    const { error } = await login(values.email, values.password);
-
-    if (error) {
-      setServerError(getAuthErrorMessage(error, "login"));
-      return;
-    }
-
-    router.replace("/");
-  };
+  const { control, serverError, isSubmitting, submit } = useLogin();
 
   return (
     <AuthFormLayout title="Iniciar sesión" subtitle="Accede a tus trabajos del día.">
@@ -41,7 +17,7 @@ export default function LoginScreen() {
         <Field control={control} name="password" label="Contraseña" placeholder="Tu contraseña" secureTextEntry autoComplete="password" maxLength={128} rules={{ required: "Ingresa tu contraseña." }} />
       </View>
       {serverError ? <Text className="text-sm text-red-600">{serverError}</Text> : null}
-      <Button text={isSubmitting ? "Ingresando..." : "Iniciar sesión"} onPress={handleSubmit(onSubmit)} disabled={isSubmitting} />
+      <Button text={isSubmitting ? "Ingresando..." : "Iniciar sesión"} onPress={submit} disabled={isSubmitting} />
       {isSubmitting ? <ActivityIndicator color="#0a7ea4" /> : null}
       <AuthSwitchLink prompt="¿No tienes una cuenta?" linkText="Regístrate" href="/register" />
     </AuthFormLayout>
