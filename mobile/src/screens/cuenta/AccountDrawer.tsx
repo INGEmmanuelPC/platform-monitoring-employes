@@ -7,7 +7,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AccountContent } from "@/components/AccountContent";
+import { AccountContent } from "./AccountContent";
 
 interface AccountDrawerProps {
   visible: boolean;

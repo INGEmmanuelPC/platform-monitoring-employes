@@ -5,7 +5,8 @@ el código existente; no reemplaza la configuración de NativeWind v5/Tailwind v
 
 Regla base: antes de repetir una combinación visual, busca un componente ya
 existente en `src/components/`, especialmente `Button`, `Field`, `Select`,
-`IconSymbol` y `EntityScreens`.
+`IconSymbol`, `ErrorBanner` y `EmptyState`. Las pantallas del CRUD viven en
+`src/screens/crud/`.
 
 ---
 
@@ -101,7 +102,7 @@ Usar `src/components/Field.tsx` únicamente con `react-hook-form`. Incluye etiqu
 `TextInput`, borde de error y mensaje de validación. Los campos libres, como el
 buscador del CRUD, usan `rounded-lg border border-neutral-300 bg-white p-3`.
 
-Todos los formularios del CRUD (`src/components/EntityScreens.tsx`) usan `Field` con
+Todos los formularios del CRUD (`src/screens/crud/EntityFormScreen.tsx`) usan `Field` con
 `react-hook-form`, igual que login y registro. Al editar, `reset()` fija el
 valor original y `formState.dirtyFields` decide qué campos viajan en el
 `PATCH` — nunca se reenvía el objeto completo.
@@ -122,8 +123,9 @@ Las listas de trabajos y entidades usan filas blancas con borde neutral:
 ```
 
 Cuando una combinación repetida necesite comportamiento propio, debe extraerse
-a un componente pequeño dentro de `src/components/`; no se duplican botones o
-campos manualmente.
+a un componente pequeño: en `src/components/` si lo usan varias áreas, o en el
+`components/` de la pantalla (`src/screens/<área>/components/`) si solo lo usa
+ella. No se duplican botones o campos manualmente.
 
 ## Estados visibles
 

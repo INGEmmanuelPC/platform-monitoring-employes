@@ -1,12 +1,13 @@
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Image, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, Text } from "react-native";
 import { useSQLiteContext } from "expo-sqlite";
 
 import { Button } from "@/components/Button";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { getEvidencias, guardarEvidencia } from "@/src/data/trabajos";
+
+import { FotoEvidenciaCard } from "./components/FotoEvidenciaCard";
 
 export default function EvidenciaScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -45,16 +46,20 @@ export default function EvidenciaScreen() {
   return (
     <ScrollView className="flex-1 bg-neutral-50" contentContainerClassName="gap-5 p-5 pb-10" keyboardShouldPersistTaps="handled">
       <Text className="text-center text-base text-neutral-700">Registra una evidencia antes y otra después del servicio.</Text>
-      <View className="gap-3 rounded-xl border border-neutral-200 bg-white p-5">
-        <IconSymbol size={48} name="camera.fill" color="#1B4965" /><Text className="text-base font-semibold text-neutral-900">Antes</Text>
-        {beforeUri ? <Image source={{ uri: beforeUri }} className="h-44 w-full rounded-lg" resizeMode="cover" /> : null}
-        <Button text={taking === "FOTO_ANTES" ? "Guardando..." : "Tomar foto"} onPress={() => void takePhoto("FOTO_ANTES")} disabled={taking !== null} className="w-full" />
-      </View>
-      <View className="gap-3 rounded-xl border border-neutral-200 bg-white p-5">
-        <IconSymbol size={48} name="camera.fill" color="#1B4965" /><Text className="text-base font-semibold text-neutral-900">Después</Text>
-        {afterUri ? <Image source={{ uri: afterUri }} className="h-44 w-full rounded-lg" resizeMode="cover" /> : null}
-        <Button text={taking === "FOTO_DESPUES" ? "Guardando..." : "Tomar foto"} onPress={() => void takePhoto("FOTO_DESPUES")} disabled={taking !== null} className="w-full" />
-      </View>
+      <FotoEvidenciaCard
+        title="Antes"
+        uri={beforeUri}
+        buttonText={taking === "FOTO_ANTES" ? "Guardando..." : "Tomar foto"}
+        disabled={taking !== null}
+        onPress={() => void takePhoto("FOTO_ANTES")}
+      />
+      <FotoEvidenciaCard
+        title="Después"
+        uri={afterUri}
+        buttonText={taking === "FOTO_DESPUES" ? "Guardando..." : "Tomar foto"}
+        disabled={taking !== null}
+        onPress={() => void takePhoto("FOTO_DESPUES")}
+      />
       {error ? <Text className="text-center text-sm text-red-600">{error}</Text> : null}
       <Text className="text-center text-xs text-neutral-500">La foto de después es necesaria para continuar. Puedes reemplazar cualquiera antes de avanzar.</Text>
       <Button text="Continuar" onPress={() => router.replace({ pathname: "/trabajo/[id]/dictado", params: { id } })} disabled={!afterUri || taking !== null} className="w-full" />

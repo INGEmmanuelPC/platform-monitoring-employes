@@ -85,11 +85,16 @@ actual y ya fue una decisión documentada, no un olvido.
 
 Ya existe:
 
-- Navegación completa del técnico (esqueleto, sin lógica):
+- Navegación completa del técnico:
   - `app/(tecnico)/` — pestañas: Hoy, Historial, Cuenta
   - `app/trabajo/[id]/` — Stack del flujo: llegada, evidencia, dictado, firma
+  - `app/crud/` — listado, alta y detalle de técnicos, clientes y órdenes
 - `src/constants/trabajos.ts` — los tres ejes de estado + datos de ejemplo
-- `src/components/` — `Button`, `Field`, `IndicadorSync`, `IconSymbol`
+- `src/components/` — reutilizables: `Button`, `Field`, `Select`, `BrandHeader`,
+  `ErrorBanner`, `EmptyState`, `IndicadorSync`, `IconSymbol`
+- `src/screens/` — una carpeta por área (`auth`, `tecnico`, `trabajo`,
+  `cuenta`, `crud`); cada pantalla y sus piezas propias en `components/`
+- `src/navigation/` y `src/providers/` — navegadores y proveedores globales
 - NativeWind v5 configurado y verificado en dispositivo
 
 Ya existe la base inicial de SQLite, una cola de sincronización operativa, el
@@ -98,6 +103,22 @@ lienzo de firma ni panel de administrador.
 
 Los estados y etiquetas de `src/constants/trabajos.ts` son contratos de dominio; los
 datos de trabajos viven en SQLite y se refrescan desde el backend HTTP.
+
+## Dónde va cada cosa (ADR 0007)
+
+- **`app/` solo define rutas.** Cada archivo importa una pantalla de
+  `src/screens/` o un navegador de `src/navigation/` y la renderiza. Sin
+  estado, sin lógica y sin JSX de interfaz. Se permite configuración de
+  enrutamiento (`unstable_settings`, `Stack.Screen`).
+- **`src/screens/<área>/`** — la pantalla completa. Si crece, sus piezas viven
+  en `src/screens/<área>/components/`, cada una con una sola responsabilidad.
+- **`src/components/`** — solo piezas reutilizables entre áreas, sin conocer
+  una pantalla concreta. Si una pieza solo la usa una pantalla, va en el
+  `components/` de esa área.
+- **`src/navigation/`** — `Tabs` y `Stack` del técnico; **`src/providers/`** —
+  proveedores globales (`AppProviders`).
+- Los alias de `tsconfig.json` (`@/components`, `@/constants`, `@/hooks`,
+  `@/src`) no cambian. Para pantallas usa `@/src/screens/...`.
 
 ## Trampas ya conocidas — no las "arregles"
 

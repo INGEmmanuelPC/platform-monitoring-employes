@@ -1,2 +1,5 @@
-import { EntityFormScreen } from "@/components/EntityScreens";
-export default function NuevoTecnicoScreen() { return <EntityFormScreen entity="tecnicos" edit={false} />; }
+import { EntityFormScreen } from "@/src/screens/crud/EntityFormScreen";
+
+export default function NuevoTecnicoScreen() {
+  return <EntityFormScreen entity="tecnicos" edit={false} />;
+}

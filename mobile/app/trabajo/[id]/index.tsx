@@ -1,4 +1,4 @@
-import TrabajoDetailScreen from "@/src/components/trabajo/TrabajoDetailScreen";
+import TrabajoDetailScreen from "@/src/screens/trabajo/TrabajoDetailScreen";
 
 export default function TrabajoDetailRoute() {
   return <TrabajoDetailScreen />;

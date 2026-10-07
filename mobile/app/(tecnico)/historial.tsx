@@ -1,4 +1,4 @@
-import HistorialScreen from "@/src/components/tecnico/HistorialScreen";
+import HistorialScreen from "@/src/screens/tecnico/HistorialScreen";
 
 export default function HistorialRoute() {
   return <HistorialScreen />;

@@ -294,9 +294,13 @@ flujos de cámara, sincronización y autenticación.
 
 ```text
 mobile/
-  app/                Rutas Expo Router
+  app/                Rutas Expo Router (solo enrutamiento)
   src/
-    components/       Componentes visuales reutilizables
+    screens/          Pantallas por área: auth, tecnico, trabajo, cuenta, crud
+                      (cada una con su carpeta components/ de piezas propias)
+    components/       Componentes visuales reutilizables entre áreas
+    navigation/       Tabs y Stack del técnico
+    providers/        Proveedores globales de la app
     constants/        Estados y etiquetas del dominio
     hooks/            Hooks globales activos
     api/              Cliente Supabase y servicio de autenticacion
