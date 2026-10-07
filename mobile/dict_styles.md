@@ -191,8 +191,10 @@ si fuera la aprobación del reporte final.
 
 - Tokens base: `src/constants/theme.ts`.
 - Estilos globales: `global.css`.
-- Componentes reutilizables: `src/components/Button.tsx`, `src/components/Field.tsx` y
+- Componentes reutilizables: `src/components/Button.tsx`, `src/components/Field.tsx`,
+  `src/components/ErrorBanner.tsx`, `src/components/EmptyState.tsx` y
   `src/components/indicador-sync.tsx`.
+- Piezas propias de cada pantalla: `src/screens/<área>/components/`.
 - Contratos y etiquetas de estados: `src/constants/trabajos.ts`.
 - Las clases NativeWind existentes son la referencia inmediata mientras no se
   centralicen todos los tokens en un sistema de diseño de código.

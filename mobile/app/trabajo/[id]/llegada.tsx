@@ -1,4 +1,4 @@
-import LlegadaScreen from "@/src/components/trabajo/LlegadaScreen";
+import LlegadaScreen from "@/src/screens/trabajo/LlegadaScreen";
 
 export default function LlegadaRoute() {
   return <LlegadaScreen />;

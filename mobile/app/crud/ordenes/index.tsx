@@ -1,2 +1,5 @@
-import { EntityListScreen } from "@/components/EntityScreens";
-export default function OrdenesScreen() { return <EntityListScreen entity="ordenes" />; }
+import { EntityListScreen } from "@/src/screens/crud/EntityListScreen";
+
+export default function OrdenesScreen() {
+  return <EntityListScreen entity="ordenes" />;
+}

@@ -1,4 +1,4 @@
-import FirmaScreen from "@/src/components/trabajo/FirmaScreen";
+import FirmaScreen from "@/src/screens/trabajo/FirmaScreen";
 
 export default function FirmaRoute() {
   return <FirmaScreen />;

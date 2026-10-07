@@ -1,4 +1,4 @@
-import DictadoScreen from "@/src/components/trabajo/DictadoScreen";
+import DictadoScreen from "@/src/screens/trabajo/DictadoScreen";
 
 export default function DictadoRoute() {
   return <DictadoScreen />;
