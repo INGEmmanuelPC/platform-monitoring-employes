@@ -1,35 +1,17 @@
-import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useRouter } from "expo-router";
 import { ScrollView, Text, TextInput, View } from "react-native";
 
 import { Button } from "@/components/Button";
-import { listEntities, type EntityName, type EntityRecord } from "@/src/api/entities";
+import { type EntityName } from "@/src/api/entities";
 
 import { EntityListItem } from "./components/EntityListItem";
 import { createPaths, definitions, detailPath } from "./entityDefinitions";
+import { useEntityList } from "./hooks/useEntityList";
 
 export function EntityListScreen({ entity }: { entity: EntityName }) {
   const definition = definitions[entity];
   const router = useRouter();
-  const [items, setItems] = useState<EntityRecord[]>([]);
-  const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadEntities = useCallback(() => {
-    let active = true;
-    setLoading(true);
-    listEntities(entity, search).then((result) => {
-      if (active) { setItems(result); setError(null); }
-    }).catch((loadError) => {
-      if (active) setError(loadError instanceof Error ? loadError.message : "No se pudo cargar la información.");
-    }).finally(() => {
-      if (active) setLoading(false);
-    });
-    return () => { active = false; };
-  }, [entity, search]);
-
-  useFocusEffect(loadEntities);
+  const { items, search, setSearch, loading, error } = useEntityList(entity);
 
   return (
     <ScrollView className="flex-1 bg-neutral-50" keyboardShouldPersistTaps="handled">

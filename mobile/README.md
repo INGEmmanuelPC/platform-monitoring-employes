@@ -297,12 +297,14 @@ mobile/
   app/                Rutas Expo Router (solo enrutamiento)
   src/
     screens/          Pantallas por área: auth, tecnico, trabajo, cuenta, crud
-                      (cada una con su carpeta components/ de piezas propias)
+      <área>/
+        components/   Piezas de presentación propias
+        hooks/        Lógica extraída (useLogin, useEntityForm, useEntityList, etc.)
     components/       Componentes visuales reutilizables entre áreas
     navigation/       Tabs y Stack del técnico
     providers/        Proveedores globales de la app
     constants/        Estados y etiquetas del dominio
-    hooks/            Hooks globales activos
+    hooks/            Hooks transversales (use-color-scheme, etc.)
     api/              Cliente Supabase y servicio de autenticacion
     data/             SQLite, repositorios y datos locales
     session/          Sesion y proteccion de rutas

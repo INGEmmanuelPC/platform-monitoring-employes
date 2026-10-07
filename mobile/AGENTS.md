@@ -110,13 +110,17 @@ datos de trabajos viven en SQLite y se refrescan desde el backend HTTP.
   `src/screens/` o un navegador de `src/navigation/` y la renderiza. Sin
   estado, sin lógica y sin JSX de interfaz. Se permite configuración de
   enrutamiento (`unstable_settings`, `Stack.Screen`).
-- **`src/screens/<área>/`** — la pantalla completa. Si crece, sus piezas viven
-  en `src/screens/<área>/components/`, cada una con una sola responsabilidad.
+- **`src/screens/<área>/`** — la pantalla completa. Si crece, sus piezas viven en:
+  - `src/screens/<área>/components/` — presentación (tarjetas, campos de formulario, etc.)
+  - `src/screens/<área>/hooks/` — lógica extraída (estado, efectos, APIs, validaciones)
+  Cada una con una sola responsabilidad. Ejemplos: `useLogin`, `useEntityForm`, `useEntityList`.
 - **`src/components/`** — solo piezas reutilizables entre áreas, sin conocer
   una pantalla concreta. Si una pieza solo la usa una pantalla, va en el
   `components/` de esa área.
 - **`src/navigation/`** — `Tabs` y `Stack` del técnico; **`src/providers/`** —
   proveedores globales (`AppProviders`).
+- **`src/hooks/`** — hooks transversales, no ligados a una pantalla concreta.
+  Ejemplos: `use-color-scheme`, `useAuth`.
 - Los alias de `tsconfig.json` (`@/components`, `@/constants`, `@/hooks`,
   `@/src`) no cambian. Para pantallas usa `@/src/screens/...`.
 
