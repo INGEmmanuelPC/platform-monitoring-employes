@@ -1,41 +1,14 @@
-import { useRouter } from "expo-router";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
 import { ActivityIndicator, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import Field from "@/components/Field";
-import { getAuthErrorMessage, register } from "@/src/api/auth";
 
 import { AuthFormLayout } from "./components/AuthFormLayout";
 import { AuthSwitchLink } from "./components/AuthSwitchLink";
-
-type RegisterForm = {
-  name: string;
-  email: string;
-  password: string;
-  passwordConfirmation: string;
-};
+import { useRegister } from "./hooks/useRegister";
 
 export default function RegisterScreen() {
-  const router = useRouter();
-  const [serverError, setServerError] = useState<string | null>(null);
-  const { control, handleSubmit, watch, formState: { isSubmitting } } = useForm<RegisterForm>({
-    defaultValues: { name: "", email: "", password: "", passwordConfirmation: "" },
-  });
-  const password = watch("password");
-
-  const onSubmit = async (values: RegisterForm) => {
-    setServerError(null);
-    const { data, error } = await register(values);
-
-    if (error) {
-      setServerError(getAuthErrorMessage(error, "register"));
-      return;
-    }
-
-    router.replace(data.session ? "/" : "/login");
-  };
+  const { control, isSubmitting, password, serverError, submit } = useRegister();
 
   return (
     <AuthFormLayout title="Crear cuenta" subtitle="Regístrate para usar la aplicación.">
@@ -46,7 +19,7 @@ export default function RegisterScreen() {
         <Field control={control} name="passwordConfirmation" label="Confirmar contraseña" placeholder="Repite tu contraseña" secureTextEntry autoComplete="new-password" maxLength={128} rules={{ required: "Confirma tu contraseña.", validate: (value) => value === password || "Las contraseñas no coinciden." }} />
       </View>
       {serverError ? <Text className="text-sm text-red-600">{serverError}</Text> : null}
-      <Button text={isSubmitting ? "Creando cuenta..." : "Crear cuenta"} onPress={handleSubmit(onSubmit)} disabled={isSubmitting} />
+      <Button text={isSubmitting ? "Creando cuenta..." : "Crear cuenta"} onPress={submit} disabled={isSubmitting} />
       {isSubmitting ? <ActivityIndicator color="#0a7ea4" /> : null}
       <AuthSwitchLink prompt="¿Ya tienes una cuenta?" linkText="Inicia sesión" href="/login" />
     </AuthFormLayout>

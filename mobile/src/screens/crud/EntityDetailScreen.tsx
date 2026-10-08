@@ -1,32 +1,22 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 
-import { deleteEntity, type EntityName } from "@/src/api/entities";
+import { type EntityName } from "@/src/api/entities";
 
 import { DeleteEntityPanel } from "./components/DeleteEntityPanel";
 import { EntityFormScreen } from "./EntityFormScreen";
+import { useEntityDelete } from "./hooks/useEntityDelete";
 
 export function EntityDetailScreen({ entity }: { entity: EntityName }) {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const {
+    confirmingDelete,
+    deleteError,
+    deleting,
+    remove,
+    setConfirmingDelete,
+  } = useEntityDelete(entity, id);
   if (!id) return null;
-  const remove = async () => {
-    setDeleting(true);
-    setDeleteError(null);
-    try {
-      const result = await deleteEntity(entity, id);
-      if (!result.deleted) throw new Error("El servidor no confirmó la eliminación.");
-      router.back();
-    } catch (removeError) {
-      setDeleteError(removeError instanceof Error ? removeError.message : "No se pudo eliminar el registro.");
-    } finally {
-      setDeleting(false);
-    }
-  };
   return (
     <View className="flex-1 bg-neutral-50 p-4">
       <EntityFormScreen entity={entity} edit />

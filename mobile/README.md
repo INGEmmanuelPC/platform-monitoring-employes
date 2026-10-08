@@ -299,7 +299,7 @@ mobile/
     screens/          Pantallas por área: auth, tecnico, trabajo, cuenta, crud
       <área>/
         components/   Piezas de presentación propias
-        hooks/        Lógica extraída (useLogin, useEntityForm, useEntityList, etc.)
+        hooks/        Lógica extraída (useLogin, useRegister, useEntityForm, useEntityList, useEntityDelete, useSyncQueue, etc.)
     components/       Componentes visuales reutilizables entre áreas
     navigation/       Tabs y Stack del técnico
     providers/        Proveedores globales de la app
@@ -347,6 +347,9 @@ Implementado y validado por compilación/arranque:
   Supabase Auth (`auth.admin.inviteUserByEmail`); solo un perfil con
   `role = 'admin'` puede crear, modificar o desactivar técnicos, reforzado en
   backend (`requireAdmin`) y en RLS (`private.is_admin()`).
+- Hooks de pantallas extraídos a `src/screens/**/hooks/`: `useLogin`,
+  `useRegister`, `useEntityForm`, `useEntityList`, `useEntityDelete`,
+  `useSyncQueue` y los hooks del flujo de trabajo de servicio.
 - Subida diferida de evidencias mediante Storage.
 - Identidad de marca (nombre "Cuadrilla", eslogan, logo con transparencia
   real, tipografía Archivo/IBM Plex Sans) aplicada en login, registro, splash
