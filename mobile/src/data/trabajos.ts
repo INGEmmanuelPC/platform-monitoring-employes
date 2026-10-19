@@ -46,11 +46,11 @@ export async function getTrabajo(
 
 export async function getEvidencias(database: SQLiteDatabase, trabajoId: string) {
   return database.getAllAsync<{
-    tipo: "FOTO_ANTES" | "FOTO_DESPUES";
+    tipo: "FOTO_ANTES" | "FOTO_DESPUES" | "NOTA" | "FIRMA";
     storage_path: string | null;
   }>(
     `SELECT tipo, storage_path FROM evidencias
-     WHERE trabajo_id = ? AND tipo IN ('FOTO_ANTES', 'FOTO_DESPUES')
+     WHERE trabajo_id = ? AND tipo IN ('FOTO_ANTES', 'FOTO_DESPUES', 'NOTA', 'FIRMA')
      ORDER BY created_at`,
     trabajoId,
   );

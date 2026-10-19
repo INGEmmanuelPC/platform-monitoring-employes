@@ -34,6 +34,7 @@ export function EntityFormFields({ entity, fields, control, clients }: Props) {
         control={control}
         name={field.key}
         label={field.label}
+        placeholder={`Escribe ${field.label.toLowerCase()}`}
         multiline={field.multiline}
         numberOfLines={field.multiline ? 5 : undefined}
         textAlignVertical={field.multiline ? "top" : undefined}

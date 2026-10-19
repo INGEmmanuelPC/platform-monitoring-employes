@@ -1,4 +1,4 @@
-import { ActivityIndicator, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import Field from "@/components/Field";
@@ -19,8 +19,7 @@ export default function RegisterScreen() {
         <Field control={control} name="passwordConfirmation" label="Confirmar contraseña" placeholder="Repite tu contraseña" secureTextEntry autoComplete="new-password" maxLength={128} rules={{ required: "Confirma tu contraseña.", validate: (value) => value === password || "Las contraseñas no coinciden." }} />
       </View>
       {serverError ? <Text className="text-sm text-red-600">{serverError}</Text> : null}
-      <Button text={isSubmitting ? "Creando cuenta..." : "Crear cuenta"} onPress={submit} disabled={isSubmitting} />
-      {isSubmitting ? <ActivityIndicator color="#0a7ea4" /> : null}
+      <Button text="Crear cuenta" onPress={submit} disabled={isSubmitting} loading={isSubmitting} />
       <AuthSwitchLink prompt="¿Ya tienes una cuenta?" linkText="Inicia sesión" href="/login" />
     </AuthFormLayout>
   );

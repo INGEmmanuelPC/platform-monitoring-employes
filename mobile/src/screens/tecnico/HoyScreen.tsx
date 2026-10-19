@@ -1,7 +1,8 @@
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { ListSkeleton } from "@/components/Skeleton";
 import { useTrabajos } from "@/src/data/use-trabajos";
 
 import { TrabajoHoyCard } from "./components/TrabajoHoyCard";
@@ -14,10 +15,10 @@ export default function HoyScreen() {
     <ScrollView className="flex-1 bg-neutral-50">
       <View className="gap-3 p-4">
         <Text className="text-sm text-neutral-500">{pendientes.length} trabajos para hoy</Text>
-        {loading ? <ActivityIndicator color="#0a7ea4" /> : null}
+        {loading ? <ListSkeleton count={3} /> : null}
         {error ? <ErrorBanner message={error} /> : null}
         {!loading && pendientes.length === 0 ? <EmptyState message="No tienes trabajos asignados." /> : null}
-        {pendientes.map((trabajo) => (
+        {!loading && pendientes.map((trabajo) => (
           <TrabajoHoyCard key={trabajo.id} trabajo={trabajo} />
         ))}
       </View>

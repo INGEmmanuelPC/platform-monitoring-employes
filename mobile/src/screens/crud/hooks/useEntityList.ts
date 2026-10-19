@@ -9,7 +9,7 @@ export function useEntityList(entity: EntityName) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadEntities = useCallback(() => {
+  const reload = useCallback(() => {
     let active = true;
     setLoading(true);
     listEntities(entity, search).then((result) => {
@@ -22,7 +22,7 @@ export function useEntityList(entity: EntityName) {
     return () => { active = false; };
   }, [entity, search]);
 
-  useFocusEffect(loadEntities);
+  useFocusEffect(reload);
 
-  return { items, search, setSearch, loading, error };
+  return { items, search, setSearch, loading, error, reload };
 }

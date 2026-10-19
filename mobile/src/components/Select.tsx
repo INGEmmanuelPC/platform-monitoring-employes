@@ -35,8 +35,22 @@ export default function Select<T extends FieldValues>({
       name={name}
       rules={rules}
       render={({ field: { onChange, value }, fieldState: { error } }) => (
-        <View className="gap-1.5">
-          <Text className="font-semibold text-neutral-800">{label}</Text>
+        <View
+          className="gap-2 rounded-2xl border border-slate-300 bg-slate-50 p-3"
+          style={{
+            backgroundColor: "#f8fafc",
+            borderColor: "#cbd5e1",
+            borderRadius: 16,
+            borderWidth: 1,
+            padding: 12,
+          }}
+        >
+          <Text style={{ color: "#0f172a", fontSize: 15, fontWeight: "700" }}>
+            {label}
+          </Text>
+          <Text style={{ color: "#475569", fontSize: 12 }}>
+            Selecciona una opción
+          </Text>
           {options.length === 0 ? (
             <Text className="rounded-lg bg-amber-50 p-3 text-amber-800">
               {empty ?? "No hay opciones disponibles."}
@@ -48,18 +62,22 @@ export default function Select<T extends FieldValues>({
                 return (
                   <Pressable
                     key={option.value}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
                     onPress={() => onChange(option.value)}
-                    className={`rounded-lg border p-3 active:opacity-70 ${
-                      selected
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-neutral-300 bg-white"
-                    }`}
+                    className="active:opacity-70"
+                    style={{
+                      backgroundColor: selected ? "#eff6ff" : "#ffffff",
+                      borderColor: selected ? "#1d4ed8" : "#64748b",
+                      borderWidth: 2,
+                      borderRadius: 12,
+                      minHeight: 52,
+                      paddingHorizontal: 12,
+                      paddingVertical: 12,
+                      width: "100%",
+                    }}
                   >
-                    <Text
-                      className={`font-medium ${
-                        selected ? "text-blue-700" : "text-neutral-700"
-                      }`}
-                    >
+                    <Text style={{ color: selected ? "#1d4ed8" : "#334155", fontSize: 15, fontWeight: "600" }}>
                       {option.label}
                     </Text>
                   </Pressable>

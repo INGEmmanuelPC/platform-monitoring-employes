@@ -1,4 +1,4 @@
-import { KeyboardAvoidingView, Platform, ScrollView, Text } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { type EntityName } from "@/src/api/entities";
@@ -9,12 +9,13 @@ import { useEntityForm } from "./hooks/useEntityForm";
 
 export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: boolean }) {
   const definition = definitions[entity];
-  const { fields, control, clients, error, isSubmitting, submit } = useEntityForm(entity, edit);
+  const { fields, control, clients, error, loading, isSubmitting, submit } = useEntityForm(entity, edit);
 
   return (
     <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView
         className="flex-1 bg-neutral-50"
+        style={{ backgroundColor: "#f8fafc" }}
         contentContainerClassName="gap-4 p-4 pb-8"
         keyboardShouldPersistTaps="handled"
       >
@@ -22,13 +23,25 @@ export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: b
           {edit ? "Editar" : "Nuevo"} {definition.title.slice(0, -1)}
         </Text>
 
-        <EntityFormFields entity={entity} fields={fields} control={control} clients={clients} />
+        {loading ? (
+          <View className="items-center gap-3 rounded-xl bg-white p-6">
+            <ActivityIndicator color="#1d4ed8" />
+            <Text className="text-neutral-600">Cargando registro...</Text>
+          </View>
+        ) : (
+          <EntityFormFields entity={entity} fields={fields} control={control} clients={clients} />
+        )}
 
-        {error ? <Text className="text-red-600">{error}</Text> : null}
+        {error ? (
+          <View className="rounded-xl border border-red-200 bg-red-50 p-3">
+            <Text className="text-sm leading-5 text-red-800">{error}</Text>
+          </View>
+        ) : null}
         <Button
           text={isSubmitting ? "Guardando..." : "Guardar"}
           onPress={submit}
-          disabled={isSubmitting}
+          disabled={isSubmitting || loading}
+          loading={isSubmitting}
         />
       </ScrollView>
     </KeyboardAvoidingView>

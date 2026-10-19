@@ -7,11 +7,11 @@ import type { TrabajoLocal } from "@/src/data/types";
 
 export function TrabajoHoyCard({ trabajo }: { trabajo: TrabajoLocal }) {
   return (
-    <Link href={{ pathname: "/trabajo/[id]", params: { id: trabajo.id } }} className="rounded-xl border border-neutral-200 bg-white p-4">
+    <Link accessibilityRole="button" href={{ pathname: "/trabajo/[id]", params: { id: trabajo.id } }} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm active:bg-blue-50">
       <View className="w-full gap-1">
         <View className="flex-row items-center justify-between">
           <Text className="text-xs text-neutral-500">{formatHora(trabajo.hora_programada)}</Text>
-          <Text className="text-xs font-semibold text-neutral-600">{ETIQUETA_TRABAJO[trabajo.estado]}</Text>
+          <Text className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800">{ETIQUETA_TRABAJO[trabajo.estado]}</Text>
         </View>
         <Text className="text-lg font-semibold text-neutral-900">{trabajo.cliente}</Text>
         <Text className="text-sm text-neutral-600">{trabajo.descripcion}</Text>

@@ -1,7 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Alert } from "react-native";
 
 import {
   createEntity,
@@ -13,6 +12,7 @@ import {
 } from "@/src/api/entities";
 
 import { definitions } from "../entityDefinitions";
+import { useAppAlert } from "@/components/AppAlert";
 
 export function useEntityForm(entity: EntityName, edit: boolean) {
   const definition = definitions[entity];
@@ -34,6 +34,8 @@ export function useEntityForm(entity: EntityName, edit: boolean) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [clients, setClients] = useState<EntityRecord[]>([]);
+  const [loading, setLoading] = useState(edit && Boolean(id));
+  const { showAlert } = useAppAlert();
 
   const defaultValues = useMemo(
     () => Object.fromEntries(fields.map((field) => [field.key, ""])),
@@ -68,7 +70,8 @@ export function useEntityForm(entity: EntityName, edit: boolean) {
       // el punto de comparación: a partir de aquí, dirtyFields solo marca lo
       // que el usuario realmente toque, no lo que ya venía así.
       reset(next);
-    }).catch((loadError) => setError(loadError instanceof Error ? loadError.message : "No se pudo cargar el registro."));
+    }).catch((loadError) => setError(loadError instanceof Error ? loadError.message : "No se pudo cargar el registro."))
+      .finally(() => setLoading(false));
   }, [edit, entity, fields, id, reset]);
 
   const submit = handleSubmit(async (values) => {
@@ -91,13 +94,11 @@ export function useEntityForm(entity: EntityName, edit: boolean) {
       const message = entity === "tecnicos" && !edit
         ? "Invitación enviada. El técnico debe revisar su correo para configurar su cuenta."
         : "Los cambios se guardaron correctamente.";
-      Alert.alert("Guardado", message, [
-        { text: "Aceptar", onPress: () => router.back() },
-      ]);
+      showAlert({ title: "Guardado", message, kind: "success", onConfirm: () => router.back() });
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "No se pudo guardar el registro.");
     }
   });
 
-  return { fields, control, clients, error, isSubmitting, submit };
+  return { fields, control, clients, error, loading, isSubmitting, submit };
 }

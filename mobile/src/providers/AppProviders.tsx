@@ -18,6 +18,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { initializeDatabase } from "@/src/data/database";
 import { AuthProvider } from "@/src/session/AuthProvider";
 import { RouteGuard } from "@/src/session/RouteGuard";
+import { AppAlertProvider } from "@/components/AppAlert";
 
 import "@/global.css";
 
@@ -43,16 +44,18 @@ export function AppProviders({ children }: PropsWithChildren) {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <SQLiteProvider databaseName="empleados.db" onInit={initializeDatabase}>
-          <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-            <RouteGuard>
-              {children}
-            </RouteGuard>
-            <StatusBar style="auto" />
-          </ThemeProvider>
-        </SQLiteProvider>
-      </AuthProvider>
+      <AppAlertProvider>
+        <AuthProvider>
+          <SQLiteProvider databaseName="empleados.db" onInit={initializeDatabase}>
+            <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+              <RouteGuard>
+                {children}
+              </RouteGuard>
+              <StatusBar style="auto" />
+            </ThemeProvider>
+          </SQLiteProvider>
+        </AuthProvider>
+      </AppAlertProvider>
     </GestureHandlerRootView>
   );
 }

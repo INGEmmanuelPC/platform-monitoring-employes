@@ -1,4 +1,4 @@
-import { ActivityIndicator, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import Field from "@/components/Field";
@@ -17,8 +17,7 @@ export default function LoginScreen() {
         <Field control={control} name="password" label="Contraseña" placeholder="Tu contraseña" secureTextEntry autoComplete="password" maxLength={128} rules={{ required: "Ingresa tu contraseña." }} />
       </View>
       {serverError ? <Text className="text-sm text-red-600">{serverError}</Text> : null}
-      <Button text={isSubmitting ? "Ingresando..." : "Iniciar sesión"} onPress={submit} disabled={isSubmitting} />
-      {isSubmitting ? <ActivityIndicator color="#0a7ea4" /> : null}
+      <Button text="Iniciar sesión" onPress={submit} disabled={isSubmitting} loading={isSubmitting} />
       <AuthSwitchLink prompt="¿No tienes una cuenta?" linkText="Regístrate" href="/register" />
     </AuthFormLayout>
   );
