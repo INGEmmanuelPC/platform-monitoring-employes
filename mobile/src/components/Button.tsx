@@ -1,5 +1,15 @@
 import { useRef } from "react";
-import { ActivityIndicator, Animated, Pressable, Text } from "react-native";
+import {
+  ActivityIndicator,
+  Animated,
+  Pressable,
+  Text,
+  type ViewStyle,
+} from "react-native";
+
+import { DESIGN, RAISED_SURFACE } from "@/constants/design";
+
+type ButtonVariant = "primary" | "secondary" | "danger";
 
 interface ButtonProps {
   text: string;
@@ -7,10 +17,39 @@ interface ButtonProps {
   onPress: () => void;
   disabled?: boolean;
   loading?: boolean;
+  variant?: ButtonVariant;
 }
 
-export function Button({ text, className, onPress, disabled, loading = false }: ButtonProps) {
+const VARIANT_STYLES: Record<ButtonVariant, ViewStyle> = {
+  primary: {
+    backgroundColor: DESIGN.colors.brand,
+    borderColor: DESIGN.colors.brandPressed,
+  },
+  secondary: {
+    backgroundColor: DESIGN.colors.surface,
+    borderColor: DESIGN.colors.border,
+  },
+  danger: {
+    backgroundColor: DESIGN.colors.error,
+    borderColor: "#741717",
+  },
+};
+
+export function Button({
+  text,
+  className,
+  onPress,
+  disabled,
+  loading = false,
+  variant = "primary",
+}: ButtonProps) {
   const scale = useRef(new Animated.Value(1)).current;
+  const unavailable = disabled || loading;
+  const textColor = variant === "secondary" ? DESIGN.colors.brand : DESIGN.colors.surface;
+  const loadingColor =
+    unavailable && variant !== "secondary"
+      ? DESIGN.colors.disabledText
+      : textColor;
 
   const animateTo = (value: number) => {
     Animated.spring(scale, { toValue: value, useNativeDriver: true, speed: 24, bounciness: 4 }).start();
@@ -20,15 +59,47 @@ export function Button({ text, className, onPress, disabled, loading = false }: 
     <Animated.View style={{ transform: [{ scale }] }}>
       <Pressable
         accessibilityRole="button"
-        accessibilityState={{ disabled: disabled || loading, busy: loading }}
+        accessibilityState={{ disabled: unavailable, busy: loading }}
         onPress={onPress}
-        onPressIn={() => animateTo(0.97)}
+        onPressIn={() => {
+          if (!unavailable) animateTo(0.97);
+        }}
         onPressOut={() => animateTo(1)}
-        disabled={disabled || loading}
-        className={`min-h-12 flex-row items-center justify-center gap-2 rounded-xl bg-blue-700 p-3 active:opacity-80 disabled:opacity-50 ${className ?? ""}`}
+        disabled={unavailable}
+        className={`min-h-12 flex-row items-center justify-center gap-2 rounded-xl px-4 py-3 ${className ?? ""}`}
+        style={({ pressed }) => [
+          {
+            minHeight: 52,
+            borderRadius: DESIGN.radius.control,
+            borderWidth: 1,
+            borderBottomWidth: 4,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            ...RAISED_SURFACE,
+          },
+          VARIANT_STYLES[variant],
+          unavailable
+            ? {
+                backgroundColor: DESIGN.colors.disabled,
+                borderColor: DESIGN.colors.border,
+                borderBottomColor: DESIGN.colors.border,
+                elevation: 0,
+                shadowOpacity: 0,
+              }
+            : pressed
+              ? { opacity: 0.92, elevation: 1 }
+              : undefined,
+        ]}
       >
-        {loading ? <ActivityIndicator color="#ffffff" /> : null}
-        <Text className="font-button text-center text-white">{text}</Text>
+        {loading ? <ActivityIndicator color={loadingColor} /> : null}
+        <Text
+          className="font-button text-center"
+          style={{
+            color: unavailable ? DESIGN.colors.disabledText : textColor,
+          }}
+        >
+          {text}
+        </Text>
       </Pressable>
     </Animated.View>
   );

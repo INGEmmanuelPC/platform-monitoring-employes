@@ -25,7 +25,7 @@ export function FirmaPad({ path, onStart, onMove, onClear }: Props) {
           <Text className="mt-2 text-sm text-neutral-400">Firmar aquí</Text>
         </View>
       ) : null}
-      <Button text="Limpiar firma" onPress={onClear} className="bg-neutral-500" />
+      <Button text="Limpiar firma" onPress={onClear} variant="secondary" />
     </View>
   );
 }

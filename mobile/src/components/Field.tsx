@@ -6,7 +6,14 @@ import {
   type RegisterOptions,
 } from "react-hook-form";
 import { useState } from "react";
-import { Text, TextInput, View, type TextInputProps } from "react-native";
+import {
+  Text,
+  TextInput,
+  View,
+  type TextInputProps,
+} from "react-native";
+
+import { DESIGN, RAISED_SURFACE } from "@/constants/design";
 
 type Props<T extends FieldValues> = TextInputProps & {
   control: Control<T>;
@@ -21,6 +28,7 @@ export default function Field<T extends FieldValues>({
   label,
   rules,
   className: inputClassName,
+  style: inputStyle,
   editable = true,
   ...input
 }: Props<T>) {
@@ -37,23 +45,28 @@ export default function Field<T extends FieldValues>({
         fieldState: { error },
       }) => (
         <View
-          className="gap-2 rounded-2xl border border-slate-300 bg-slate-50 p-3"
+          className="gap-2 rounded-2xl border p-3"
           style={{
-            backgroundColor: "#f8fafc",
-            borderColor: "#cbd5e1",
-            borderRadius: 16,
+            backgroundColor: DESIGN.colors.inset,
+            borderColor: DESIGN.colors.border,
+            borderRadius: DESIGN.radius.card,
             borderWidth: 1,
+            borderBottomWidth: 3,
+            borderBottomColor: DESIGN.colors.borderSubtle,
             padding: 12,
+            ...RAISED_SURFACE,
           }}
         >
-          <Text style={{ color: "#0f172a", fontSize: 15, fontWeight: "700" }}>
+          <Text style={{ color: DESIGN.colors.text, fontSize: 15, fontWeight: "700" }}>
             {label}
           </Text>
           <TextInput
             editable={editable}
             {...input}
+            className={inputClassName}
             placeholder={placeholder}
-            placeholderTextColor="#475569"
+            accessibilityLabel={label}
+            placeholderTextColor={DESIGN.colors.textSecondary}
             onFocus={(event) => {
               setFocused(true);
               input.onFocus?.(event);
@@ -63,27 +76,40 @@ export default function Field<T extends FieldValues>({
               input.onBlur?.(event);
               onBlur();
             }}
-            style={{
-              color: editable ? "#111827" : "#6b7280",
-              backgroundColor: editable ? (focused ? "#eff6ff" : "#ffffff") : "#f3f4f6",
-              borderColor: error ? "#dc2626" : focused ? "#1d4ed8" : "#64748b",
-              borderWidth: 2,
-              borderRadius: 12,
-              fontSize: 16,
-              height: input.multiline ? 128 : 56,
-              minHeight: input.multiline ? 128 : 52,
-              paddingHorizontal: 12,
-              paddingVertical: 12,
-              width: "100%",
-              textAlignVertical: input.multiline ? "top" : "center",
-              ...(input.multiline ? { paddingTop: 14 } : {}),
-            }}
+            style={[
+              inputStyle,
+              {
+                color: editable ? DESIGN.colors.text : DESIGN.colors.disabledText,
+                backgroundColor: editable
+                  ? focused
+                    ? "#E8F1F5"
+                    : DESIGN.colors.surface
+                  : DESIGN.colors.disabled,
+                borderColor: error
+                  ? DESIGN.colors.error
+                  : focused
+                    ? DESIGN.colors.brand
+                    : DESIGN.colors.border,
+                borderWidth: 1,
+                borderBottomWidth: 3,
+                borderBottomColor: error ? DESIGN.colors.error : DESIGN.colors.border,
+                borderRadius: DESIGN.radius.control,
+                fontSize: 16,
+                height: input.multiline ? 128 : 56,
+                minHeight: input.multiline ? 128 : 52,
+                paddingHorizontal: 12,
+                paddingVertical: 12,
+                width: "100%",
+                textAlignVertical: input.multiline ? "top" : "center",
+                ...(input.multiline ? { paddingTop: 14 } : {}),
+              },
+            ]}
             value={value}
             onChangeText={onChange}
             autoCapitalize="none"
           />
           {!!error && (
-            <Text style={{ color: "#b91c1c", fontSize: 12, fontWeight: "600" }}>
+            <Text style={{ color: DESIGN.colors.error, fontSize: 12, fontWeight: "600" }}>
               {error.message}
             </Text>
           )}

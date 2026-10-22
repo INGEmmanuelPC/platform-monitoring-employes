@@ -35,6 +35,21 @@ export const ETIQUETA_SYNC: Record<EstadoSync, string> = {
   CONFLICTO: "Revisar",
 };
 
+export const ETIQUETA_REPORTE: Record<EstadoReporte, string> = {
+  SIN_AUDIO: "Sin audio",
+  AUDIO_LISTO: "Audio listo",
+  TRANSCRIBIENDO: "Transcribiendo",
+  BORRADOR: "Borrador",
+  APROBADO: "Aprobado",
+  ENTREGADO: "Entregado",
+};
+
+export const ETIQUETA_EJE_ESTADO = {
+  trabajo: "Trabajo",
+  sync: "Sync",
+  reporte: "Reporte",
+} as const;
+
 export function formatHora(horaProgramada: string | null) {
   if (!horaProgramada) {
     return "Sin hora";

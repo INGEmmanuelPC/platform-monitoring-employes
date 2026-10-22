@@ -7,6 +7,8 @@ import {
 } from "react-hook-form";
 import { Pressable, Text, View } from "react-native";
 
+import { DESIGN, RAISED_SURFACE } from "@/constants/design";
+
 type Option = { value: string; label: string };
 
 type Props<T extends FieldValues> = {
@@ -36,19 +38,22 @@ export default function Select<T extends FieldValues>({
       rules={rules}
       render={({ field: { onChange, value }, fieldState: { error } }) => (
         <View
-          className="gap-2 rounded-2xl border border-slate-300 bg-slate-50 p-3"
+          className="gap-2 rounded-2xl border p-3"
           style={{
-            backgroundColor: "#f8fafc",
-            borderColor: "#cbd5e1",
-            borderRadius: 16,
+            backgroundColor: DESIGN.colors.inset,
+            borderColor: DESIGN.colors.border,
+            borderRadius: DESIGN.radius.card,
             borderWidth: 1,
+            borderBottomWidth: 3,
+            borderBottomColor: DESIGN.colors.borderSubtle,
             padding: 12,
+            ...RAISED_SURFACE,
           }}
         >
-          <Text style={{ color: "#0f172a", fontSize: 15, fontWeight: "700" }}>
+          <Text style={{ color: DESIGN.colors.text, fontSize: 15, fontWeight: "700" }}>
             {label}
           </Text>
-          <Text style={{ color: "#475569", fontSize: 12 }}>
+          <Text style={{ color: DESIGN.colors.textSecondary, fontSize: 12 }}>
             Selecciona una opción
           </Text>
           {options.length === 0 ? (
@@ -65,19 +70,27 @@ export default function Select<T extends FieldValues>({
                     accessibilityRole="radio"
                     accessibilityState={{ selected }}
                     onPress={() => onChange(option.value)}
-                    className="active:opacity-70"
-                    style={{
-                      backgroundColor: selected ? "#eff6ff" : "#ffffff",
-                      borderColor: selected ? "#1d4ed8" : "#64748b",
-                      borderWidth: 2,
-                      borderRadius: 12,
-                      minHeight: 52,
-                      paddingHorizontal: 12,
-                      paddingVertical: 12,
-                      width: "100%",
-                    }}
+                    className="w-full"
+                    style={({ pressed }) => [
+                      {
+                        backgroundColor: selected ? "#E8F1F5" : DESIGN.colors.surface,
+                        borderColor: selected ? DESIGN.colors.brand : DESIGN.colors.border,
+                        borderWidth: 1,
+                        borderBottomWidth: 3,
+                        borderBottomColor: selected
+                          ? DESIGN.colors.brandPressed
+                          : DESIGN.colors.borderSubtle,
+                        borderRadius: DESIGN.radius.control,
+                        minHeight: 52,
+                        paddingHorizontal: 12,
+                        paddingVertical: 12,
+                        width: "100%",
+                        ...RAISED_SURFACE,
+                      },
+                      pressed ? { opacity: 0.86, elevation: 1 } : undefined,
+                    ]}
                   >
-                    <Text style={{ color: selected ? "#1d4ed8" : "#334155", fontSize: 15, fontWeight: "600" }}>
+                    <Text style={{ color: selected ? DESIGN.colors.brand : DESIGN.colors.text, fontSize: 15, fontWeight: "600" }}>
                       {option.label}
                     </Text>
                   </Pressable>
@@ -86,7 +99,7 @@ export default function Select<T extends FieldValues>({
             </View>
           )}
           {!!error && (
-            <Text className="text-xs text-red-600">{error.message}</Text>
+            <Text className="text-xs" style={{ color: DESIGN.colors.error }}>{error.message}</Text>
           )}
         </View>
       )}
