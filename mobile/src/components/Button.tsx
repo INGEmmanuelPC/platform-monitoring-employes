@@ -7,7 +7,7 @@ import {
   type ViewStyle,
 } from "react-native";
 
-import { DESIGN, RAISED_SURFACE } from "@/constants/design";
+import { DESIGN, MIN_TOUCH_TARGET, RAISED_SURFACE } from "@/constants/design";
 
 type ButtonVariant = "primary" | "secondary" | "danger";
 
@@ -69,7 +69,7 @@ export function Button({
         className={`min-h-12 flex-row items-center justify-center gap-2 rounded-xl px-4 py-3 ${className ?? ""}`}
         style={({ pressed }) => [
           {
-            minHeight: 52,
+            minHeight: MIN_TOUCH_TARGET + 4,
             borderRadius: DESIGN.radius.control,
             borderWidth: 1,
             borderBottomWidth: 4,

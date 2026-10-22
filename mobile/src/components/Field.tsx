@@ -13,7 +13,7 @@ import {
   type TextInputProps,
 } from "react-native";
 
-import { DESIGN, RAISED_SURFACE } from "@/constants/design";
+import { DESIGN, MIN_TOUCH_TARGET, RAISED_SURFACE } from "@/constants/design";
 
 type Props<T extends FieldValues> = TextInputProps & {
   control: Control<T>;
@@ -95,8 +95,8 @@ export default function Field<T extends FieldValues>({
                 borderBottomColor: error ? DESIGN.colors.error : DESIGN.colors.border,
                 borderRadius: DESIGN.radius.control,
                 fontSize: 16,
-                height: input.multiline ? 128 : 56,
-                minHeight: input.multiline ? 128 : 52,
+                height: input.multiline ? 128 : MIN_TOUCH_TARGET + 8,
+                minHeight: input.multiline ? 128 : MIN_TOUCH_TARGET + 4,
                 paddingHorizontal: 12,
                 paddingVertical: 12,
                 width: "100%",

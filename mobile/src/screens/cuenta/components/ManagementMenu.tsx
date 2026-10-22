@@ -5,7 +5,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { DESIGN } from "@/constants/design";
+import { DESIGN, MIN_TOUCH_TARGET } from "@/constants/design";
 
 import { ManagementLinks } from "./ManagementLinks";
 
@@ -34,8 +34,11 @@ export function ManagementMenu() {
         accessibilityRole="button"
         accessibilityState={{ expanded: isOpen }}
         onPress={() => setIsOpen((open) => !open)}
-        className="rounded-xl p-2"
-        style={({ pressed }) => [pressed ? { backgroundColor: DESIGN.colors.borderSubtle, opacity: 0.8 } : undefined]}
+        className="rounded-xl px-3"
+        style={({ pressed }) => [
+          { minHeight: MIN_TOUCH_TARGET, justifyContent: "center" },
+          pressed ? { backgroundColor: DESIGN.colors.borderSubtle, opacity: 0.8 } : undefined,
+        ]}
       >
         <View className="flex-row items-center justify-between">
           <Text className="text-base font-semibold" style={{ color: DESIGN.colors.text }}>Gestión</Text>
