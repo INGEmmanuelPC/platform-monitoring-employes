@@ -7,7 +7,7 @@ import {
 } from "react-hook-form";
 import { Pressable, Text, View } from "react-native";
 
-import { DESIGN, RAISED_SURFACE } from "@/constants/design";
+import { DESIGN, MIN_TOUCH_TARGET, RAISED_SURFACE } from "@/constants/design";
 
 type Option = { value: string; label: string };
 
@@ -81,7 +81,7 @@ export default function Select<T extends FieldValues>({
                           ? DESIGN.colors.brandPressed
                           : DESIGN.colors.borderSubtle,
                         borderRadius: DESIGN.radius.control,
-                        minHeight: 52,
+                        minHeight: MIN_TOUCH_TARGET + 4,
                         paddingHorizontal: 12,
                         paddingVertical: 12,
                         width: "100%",

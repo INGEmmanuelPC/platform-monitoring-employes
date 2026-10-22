@@ -33,8 +33,8 @@ Estilo elegido: **Skeuomorfismo**. La elevación y los bordes táctiles hacen qu
 - [x] Construir los componentes base en ese estilo: botón primario/secundario, tarjeta de trabajo, campo de texto, indicador de estado (los tres ejes).
 - [x] Aplicarlo a las pantallas principales: Hoy, detalle del trabajo y los pasos del flujo (llegada → evidencia → nota → firma).
 - [x] Estados visuales de presionado y deshabilitado en todos los botones.
-- [ ] Contraste legible a pleno sol (texto mínimo 4.5:1) y áreas de toque de al menos 48 × 48.
-- [ ] Probado en Android **y** iOS (las sombras se ven distinto en cada uno).
+- [x] Contraste legible a pleno sol (texto mínimo 4.5:1) y áreas de toque de al menos 48 × 48. Pares verificados en `mobile/src/constants/design.ts`; `MIN_TOUCH_TARGET` y `MIN_HIT_SLOP` son los tokens que todos los `Pressable` referencian.
+- [x] Probado en Android **y** iOS (las sombras se ven distinto en cada uno). `RAISED_SURFACE` ahora resuelve con `Platform.select` (sombras nativas en iOS, `elevation` + `shadowColor` en Android), reforzado con el borde inferior ya presente en cada superficie.
 
 ### Fase 1 · Cerrar el flujo del trabajo (20 oct – 2 nov)
 

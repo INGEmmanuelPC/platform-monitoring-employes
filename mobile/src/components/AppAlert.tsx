@@ -1,6 +1,8 @@
 import { createContext, useContext, useMemo, useState, type PropsWithChildren } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 
+import { MIN_TOUCH_TARGET } from "@/constants/design";
+
 type AlertKind = "success" | "error" | "warning" | "info";
 type AlertOptions = {
   title: string;
@@ -48,8 +50,11 @@ export function AppAlertProvider({ children }: PropsWithChildren) {
             <Text className="text-base leading-6 text-neutral-800">{alert?.message}</Text>
             <Pressable
               accessibilityRole="button"
-              className={`items-center rounded-xl p-3 active:opacity-80 ${styles.button}`}
-              style={({ pressed }) => [pressed ? { opacity: 0.8 } : undefined]}
+              className={`items-center justify-center rounded-xl px-4 active:opacity-80 ${styles.button}`}
+              style={({ pressed }) => [
+                { minHeight: MIN_TOUCH_TARGET },
+                pressed ? { opacity: 0.8 } : undefined,
+              ]}
               onPress={() => {
                 const onConfirm = alert?.onConfirm;
                 setAlert(null);

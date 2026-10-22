@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from "react-native";
-import { DESIGN } from "@/constants/design";
+import { DESIGN, MIN_TOUCH_TARGET } from "@/constants/design";
 
 export function ErrorBanner({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
@@ -9,8 +9,11 @@ export function ErrorBanner({ message, onRetry }: { message: string; onRetry?: (
         <Pressable
           accessibilityRole="button"
           onPress={onRetry}
-          className="self-start rounded-xl px-4 py-3"
-          style={({ pressed }) => [{ backgroundColor: DESIGN.colors.error, minHeight: 48 }, pressed ? { opacity: 0.8 } : undefined]}
+          className="self-start items-center justify-center rounded-xl px-4 py-3"
+          style={({ pressed }) => [
+            { backgroundColor: DESIGN.colors.error, minHeight: MIN_TOUCH_TARGET },
+            pressed ? { opacity: 0.8 } : undefined,
+          ]}
         >
           <Text className="font-semibold" style={{ color: DESIGN.colors.surface }}>Reintentar</Text>
         </Pressable>
