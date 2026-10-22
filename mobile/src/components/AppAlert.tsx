@@ -49,6 +49,7 @@ export function AppAlertProvider({ children }: PropsWithChildren) {
             <Pressable
               accessibilityRole="button"
               className={`items-center rounded-xl p-3 active:opacity-80 ${styles.button}`}
+              style={({ pressed }) => [pressed ? { opacity: 0.8 } : undefined]}
               onPress={() => {
                 const onConfirm = alert?.onConfirm;
                 setAlert(null);

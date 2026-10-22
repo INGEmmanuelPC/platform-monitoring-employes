@@ -3,6 +3,7 @@ import Svg, { Path } from "react-native-svg";
 
 import { Button } from "@/components/Button";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { DESIGN, RAISED_SURFACE } from "@/constants/design";
 
 export type FirmaTouchEvent = { nativeEvent: { locationX: number; locationY: number } };
 
@@ -15,14 +16,14 @@ type Props = {
 
 export function FirmaPad({ path, onStart, onMove, onClear }: Props) {
   return (
-    <View className="gap-2 rounded-xl border-2 border-dashed border-neutral-300 bg-white p-2">
+    <View className="gap-2 rounded-2xl border-2 border-dashed p-2" style={{ backgroundColor: DESIGN.colors.surface, borderColor: DESIGN.colors.border, borderRadius: DESIGN.radius.card, ...RAISED_SURFACE }}>
       <Svg height={260} viewBox="0 0 360 260" onTouchStart={onStart} onTouchMove={onMove} className="w-full">
-        {path ? <Path d={path} stroke="#111827" strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" /> : null}
+        {path ? <Path d={path} stroke={DESIGN.colors.text} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" /> : null}
       </Svg>
       {!path ? (
         <View className="absolute inset-0 items-center justify-center">
-          <IconSymbol size={42} name="signature" color="#A3A3A3" />
-          <Text className="mt-2 text-sm text-neutral-400">Firmar aquí</Text>
+          <IconSymbol size={42} name="signature" color={DESIGN.colors.textSecondary} />
+          <Text className="mt-2 text-sm" style={{ color: DESIGN.colors.textSecondary }}>Firmar aquí</Text>
         </View>
       ) : null}
       <Button text="Limpiar firma" onPress={onClear} variant="secondary" />

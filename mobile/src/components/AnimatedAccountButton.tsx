@@ -4,6 +4,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { Pressable, Text } from "react-native";
+import { DESIGN, RAISED_SURFACE } from "@/constants/design";
 
 interface AnimatedAccountButtonProps {
   text: string;
@@ -39,16 +40,14 @@ export function AnimatedAccountButton({
           scale.value = withTiming(1, { duration: 160 });
           opacity.value = withTiming(1, { duration: 160 });
         }}
-        className={`items-center rounded-lg bg-blue-600 p-3 active:opacity-80 disabled:opacity-50 ${className ?? ""}`}
-        style={{
-          shadowColor: "#0f172a",
-          shadowOpacity: 0.12,
-          shadowRadius: 8,
-          shadowOffset: { width: 0, height: 3 },
-          elevation: 4,
-        }}
+        className={`items-center rounded-xl p-3 ${className ?? ""}`}
+        style={({ pressed }) => [
+          { backgroundColor: disabled ? DESIGN.colors.disabled : DESIGN.colors.brand, minHeight: 48, ...RAISED_SURFACE },
+          disabled ? { borderColor: DESIGN.colors.border, elevation: 0, shadowOpacity: 0 } : undefined,
+          pressed && !disabled ? { opacity: 0.82, elevation: 1 } : undefined,
+        ]}
       >
-        <Text className="font-button text-white">{text}</Text>
+        <Text className="font-button" style={{ color: disabled ? DESIGN.colors.disabledText : DESIGN.colors.surface }}>{text}</Text>
       </Pressable>
     </Animated.View>
   );

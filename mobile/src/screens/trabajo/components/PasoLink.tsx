@@ -1,7 +1,8 @@
 import { Link } from "expo-router";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { DESIGN, RAISED_SURFACE } from "@/constants/design";
 
 export type Paso = {
   ruta: "llegada" | "evidencia" | "dictado" | "firma";
@@ -13,15 +14,30 @@ export type Paso = {
 
 export function PasoLink({ paso, trabajoId }: { paso: Paso; trabajoId: string }) {
   return (
-    <Link href={{ pathname: `/trabajo/[id]/${paso.ruta}`, params: { id: trabajoId } }} className="rounded-xl border border-neutral-200 bg-white p-4">
+    <Link href={{ pathname: `/trabajo/[id]/${paso.ruta}`, params: { id: trabajoId } }} asChild>
+      <Pressable
+        className="rounded-2xl border p-4"
+        style={({ pressed }) => [
+          {
+            backgroundColor: DESIGN.colors.surface,
+            borderColor: DESIGN.colors.border,
+            borderRadius: DESIGN.radius.card,
+            borderBottomWidth: 3,
+            borderBottomColor: DESIGN.colors.borderSubtle,
+            ...RAISED_SURFACE,
+          },
+          pressed ? { opacity: 0.88, elevation: 1 } : undefined,
+        ]}
+      >
       <View className="w-full flex-row items-center gap-3">
-        <IconSymbol size={26} name={paso.hecho ? "checkmark.circle.fill" : paso.icono} color={paso.hecho ? "#15703D" : "#404040"} />
+        <IconSymbol size={26} name={paso.hecho ? "checkmark.circle.fill" : paso.icono} color={paso.hecho ? DESIGN.status.trabajo.COMPLETADO.foreground : DESIGN.colors.brand} />
         <View className="flex-1">
-          <Text className="text-base font-semibold text-neutral-900">{paso.titulo}</Text>
-          {paso.opcional ? <Text className="text-xs text-neutral-500">Opcional</Text> : null}
+          <Text className="text-base font-semibold" style={{ color: DESIGN.colors.text }}>{paso.titulo}</Text>
+          {paso.opcional ? <Text className="text-xs" style={{ color: DESIGN.colors.textSecondary }}>Opcional</Text> : null}
         </View>
-        <IconSymbol size={18} name="chevron.right" color="#A3A3A3" />
+        <IconSymbol size={18} name="chevron.right" color={DESIGN.colors.textSecondary} />
       </View>
+      </Pressable>
     </Link>
   );
 }
