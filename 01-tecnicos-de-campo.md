@@ -31,8 +31,8 @@ Estilo elegido: **Skeuomorfismo**. La elevación y los bordes táctiles hacen qu
 - [x] Elegir el estilo y justificarlo en el documento de visión (una línea: por qué encaja con un técnico en campo). Justificación registrada en `mobile/docs/adr/0008-sistema-visual-skeuomorfico.md`.
 - [x] Definir tokens (colores, radios, sombras) en `mobile/src/constants/design.ts`, no sueltos en cada pantalla.
 - [x] Construir los componentes base en ese estilo: botón primario/secundario, tarjeta de trabajo, campo de texto, indicador de estado (los tres ejes).
-- [ ] Aplicarlo a las pantallas principales: Hoy, detalle del trabajo y los pasos del flujo (llegada → evidencia → nota → firma).
-- [ ] Estados visuales de presionado y deshabilitado en todos los botones.
+- [x] Aplicarlo a las pantallas principales: Hoy, detalle del trabajo y los pasos del flujo (llegada → evidencia → nota → firma).
+- [x] Estados visuales de presionado y deshabilitado en todos los botones.
 - [ ] Contraste legible a pleno sol (texto mínimo 4.5:1) y áreas de toque de al menos 48 × 48.
 - [ ] Probado en Android **y** iOS (las sombras se ven distinto en cada uno).
 
