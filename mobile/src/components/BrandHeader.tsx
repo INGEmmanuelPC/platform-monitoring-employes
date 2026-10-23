@@ -1,5 +1,6 @@
 import { Image } from "expo-image";
 import { Text, View } from "react-native";
+import { DESIGN } from "@/constants/design";
 
 // Bloque de marca: aparece en los puntos de entrada (login, registro), no en
 // las pestañas del técnico. Ver AGENTS.md: la app la usa alguien cansado y de
@@ -13,7 +14,7 @@ export function BrandHeader() {
         style={{ width: 72, height: 72 }}
         contentFit="contain"
       />
-      <Text className="font-display text-3xl text-[#1B4965]">Cuadrilla</Text>
+      <Text className="font-display text-3xl" style={{ color: DESIGN.colors.brand }}>Cuadrilla</Text>
       <Text className="text-center font-slogan text-sm text-neutral-600">
         El trabajo lo haces tú. El reporte, solo.
       </Text>

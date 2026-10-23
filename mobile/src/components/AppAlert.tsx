@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, useState, type PropsWithChildren } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 
-import { MIN_TOUCH_TARGET } from "@/constants/design";
+import { DESIGN, MIN_TOUCH_TARGET, RAISED_SURFACE } from "@/constants/design";
 
 type AlertKind = "success" | "error" | "warning" | "info";
 type AlertOptions = {
@@ -20,10 +20,10 @@ type AlertContextValue = {
 const AlertContext = createContext<AlertContextValue | undefined>(undefined);
 
 const kindStyles: Record<AlertKind, { panel: string; title: string; button: string }> = {
-  success: { panel: "border-emerald-200 bg-emerald-50", title: "text-emerald-950", button: "bg-emerald-700" },
-  error: { panel: "border-red-200 bg-red-50", title: "text-red-950", button: "bg-red-700" },
-  warning: { panel: "border-amber-200 bg-amber-50", title: "text-amber-950", button: "bg-amber-700" },
-  info: { panel: "border-blue-200 bg-blue-50", title: "text-blue-950", button: "bg-blue-700" },
+  success: { panel: "#E5F3E9", title: "#1E5A36", button: "#1E5A36" },
+  error: { panel: DESIGN.colors.errorSurface, title: DESIGN.colors.error, button: DESIGN.colors.error },
+  warning: { panel: "#FFF0CE", title: "#754500", button: "#754500" },
+  info: { panel: "#E4F3FA", title: "#0D5278", button: "#0D5278" },
 };
 
 export function AppAlertProvider({ children }: PropsWithChildren) {
@@ -42,17 +42,19 @@ export function AppAlertProvider({ children }: PropsWithChildren) {
         <View className="flex-1 items-center justify-center bg-black/50 p-6">
           <View
             accessibilityViewIsModal
-            className={`w-full max-w-md gap-4 rounded-2xl border p-5 shadow-xl ${styles.panel}`}
+            className="w-full max-w-md gap-4 rounded-2xl border p-5"
+            style={{ backgroundColor: styles.panel, borderColor: DESIGN.colors.border, ...RAISED_SURFACE }}
           >
-            <Text accessibilityRole="header" className={`text-xl font-bold ${styles.title}`}>
+            <Text accessibilityRole="header" className="text-xl font-bold" style={{ color: styles.title }}>
               {alert?.title}
             </Text>
-            <Text className="text-base leading-6 text-neutral-800">{alert?.message}</Text>
+            <Text className="text-base leading-6" style={{ color: DESIGN.colors.text }}>{alert?.message}</Text>
             <Pressable
               accessibilityRole="button"
-              className={`items-center justify-center rounded-xl px-4 active:opacity-80 ${styles.button}`}
+              accessibilityLabel={alert?.confirmText ?? "Aceptar"}
+              className="items-center justify-center rounded-xl px-4"
               style={({ pressed }) => [
-                { minHeight: MIN_TOUCH_TARGET },
+                { backgroundColor: styles.button, borderColor: DESIGN.colors.dangerPressed, borderBottomWidth: 3, borderRadius: DESIGN.radius.control, minHeight: MIN_TOUCH_TARGET, ...RAISED_SURFACE },
                 pressed ? { opacity: 0.8 } : undefined,
               ]}
               onPress={() => {
@@ -61,7 +63,7 @@ export function AppAlertProvider({ children }: PropsWithChildren) {
                 onConfirm?.();
               }}
             >
-              <Text className="font-semibold text-white">{alert?.confirmText ?? "Aceptar"}</Text>
+              <Text className="font-semibold" style={{ color: DESIGN.colors.surface }}>{alert?.confirmText ?? "Aceptar"}</Text>
             </Pressable>
           </View>
         </View>

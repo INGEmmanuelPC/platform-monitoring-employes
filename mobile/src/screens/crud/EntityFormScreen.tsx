@@ -1,6 +1,7 @@
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
+import { DESIGN } from "@/constants/design";
 import { type EntityName } from "@/src/api/entities";
 
 import { EntityFormFields } from "./components/EntityFormFields";
@@ -15,7 +16,7 @@ export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: b
     <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView
         className="flex-1 bg-neutral-50"
-        style={{ backgroundColor: "#f8fafc" }}
+        style={{ backgroundColor: DESIGN.colors.canvas }}
         contentContainerClassName="gap-4 p-4 pb-8"
         keyboardShouldPersistTaps="handled"
       >
@@ -25,16 +26,16 @@ export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: b
 
         {loading ? (
           <View className="items-center gap-3 rounded-xl bg-white p-6">
-            <ActivityIndicator color="#1d4ed8" />
-            <Text className="text-neutral-600">Cargando registro...</Text>
+            <ActivityIndicator color={DESIGN.colors.brand} />
+            <Text style={{ color: DESIGN.colors.textSecondary }}>Cargando registro...</Text>
           </View>
         ) : (
           <EntityFormFields entity={entity} fields={fields} control={control} clients={clients} />
         )}
 
         {error ? (
-          <View className="rounded-xl border border-red-200 bg-red-50 p-3">
-            <Text className="text-sm leading-5 text-red-800">{error}</Text>
+          <View className="rounded-xl border p-3" style={{ backgroundColor: DESIGN.colors.errorSurface, borderColor: DESIGN.colors.error }}>
+            <Text className="text-sm leading-5" style={{ color: DESIGN.colors.error }}>{error}</Text>
           </View>
         ) : null}
         <Button

@@ -357,11 +357,29 @@ app.use((error: unknown, _request: Request, response: Response, _next: NextFunct
     response.status(400).json({ error: "Revisa los datos enviados.", details: error.issues });
     return;
   }
-  const candidate = error as { message?: unknown; code?: unknown; details?: unknown };
+  const candidate = error as {
+    message?: unknown;
+    code?: unknown;
+    details?: unknown;
+    name?: unknown;
+    status?: unknown;
+  };
   const rawMessage = typeof candidate.message === "string" ? candidate.message : "Error interno del servidor.";
   const code = typeof candidate.code === "string" ? candidate.code : "";
+  const errorName = typeof candidate.name === "string" ? candidate.name : "";
   console.error("API error", { code, message: rawMessage, details: candidate.details });
 
+  if (
+    errorName === "AuthApiError" &&
+    (code === "invalid_credentials" || rawMessage.toLowerCase().includes("invalid login credentials"))
+  ) {
+    response.status(401).json({ error: "El correo o la contraseña no son correctos." });
+    return;
+  }
+  if (errorName === "AuthApiError" && rawMessage.toLowerCase().includes("email not confirmed")) {
+    response.status(403).json({ error: "Confirma tu correo electrónico antes de iniciar sesión." });
+    return;
+  }
   if (code === "23505") {
     response.status(409).json({ error: "Ya existe un registro con esos datos." });
     return;

@@ -18,6 +18,9 @@ interface ButtonProps {
   disabled?: boolean;
   loading?: boolean;
   variant?: ButtonVariant;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  testID?: string;
 }
 
 const VARIANT_STYLES: Record<ButtonVariant, ViewStyle> = {
@@ -31,7 +34,7 @@ const VARIANT_STYLES: Record<ButtonVariant, ViewStyle> = {
   },
   danger: {
     backgroundColor: DESIGN.colors.error,
-    borderColor: "#741717",
+    borderColor: DESIGN.colors.dangerPressed,
   },
 };
 
@@ -42,6 +45,9 @@ export function Button({
   disabled,
   loading = false,
   variant = "primary",
+  accessibilityLabel = text,
+  accessibilityHint,
+  testID,
 }: ButtonProps) {
   const scale = useRef(new Animated.Value(1)).current;
   const unavailable = disabled || loading;
@@ -59,7 +65,10 @@ export function Button({
     <Animated.View style={{ transform: [{ scale }] }}>
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
         accessibilityState={{ disabled: unavailable, busy: loading }}
+        testID={testID}
         onPress={onPress}
         onPressIn={() => {
           if (!unavailable) animateTo(0.97);

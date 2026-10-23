@@ -24,6 +24,8 @@ export const DESIGN = {
     inset: "#F6F8F9",
     brand: "#1B4965",
     brandPressed: "#163B52",
+    dangerPressed: "#741717",
+    selected: "#E8F1F5",
     text: "#17313F",
     textSecondary: "#526A75",
     border: "#CAD6DC",

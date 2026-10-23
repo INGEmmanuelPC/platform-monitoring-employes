@@ -11,7 +11,7 @@ type Props = PropsWithChildren<{
 export function AuthFormLayout({ title, subtitle, children }: Props) {
   return (
     <KeyboardAvoidingView className="flex-1 bg-neutral-50" behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      <ScrollView contentContainerClassName="flex-grow justify-center p-5" keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerClassName="flex-grow justify-center p-5" keyboardShouldPersistTaps="always">
         <BrandHeader />
         <View className="mt-6 gap-6 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
           <View className="gap-1">

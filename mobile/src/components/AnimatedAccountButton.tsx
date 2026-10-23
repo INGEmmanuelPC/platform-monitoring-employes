@@ -4,7 +4,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { Pressable, Text } from "react-native";
-import { DESIGN, RAISED_SURFACE } from "@/constants/design";
+import { DESIGN, MIN_TOUCH_TARGET, RAISED_SURFACE } from "@/constants/design";
 
 interface AnimatedAccountButtonProps {
   text: string;
@@ -42,7 +42,7 @@ export function AnimatedAccountButton({
         }}
         className={`items-center rounded-xl p-3 ${className ?? ""}`}
         style={({ pressed }) => [
-          { backgroundColor: disabled ? DESIGN.colors.disabled : DESIGN.colors.brand, minHeight: 48, ...RAISED_SURFACE },
+          { backgroundColor: disabled ? DESIGN.colors.disabled : DESIGN.colors.brand, minHeight: MIN_TOUCH_TARGET, ...RAISED_SURFACE },
           disabled ? { borderColor: DESIGN.colors.border, elevation: 0, shadowOpacity: 0 } : undefined,
           pressed && !disabled ? { opacity: 0.82, elevation: 1 } : undefined,
         ]}

@@ -82,7 +82,7 @@ export default function Field<T extends FieldValues>({
                 color: editable ? DESIGN.colors.text : DESIGN.colors.disabledText,
                 backgroundColor: editable
                   ? focused
-                    ? "#E8F1F5"
+                    ? DESIGN.colors.selected
                     : DESIGN.colors.surface
                   : DESIGN.colors.disabled,
                 borderColor: error

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Animated, View, type ViewStyle } from "react-native";
+import { DESIGN } from "@/constants/design";
 
 export function Skeleton({ style }: { style?: ViewStyle }) {
   const opacity = useRef(new Animated.Value(0.45)).current;
@@ -31,14 +32,14 @@ export function Skeleton({ style }: { style?: ViewStyle }) {
     return () => animation.stop();
   }, [opacity, reduceMotion]);
 
-  return <Animated.View style={[{ backgroundColor: "#dbe4ee", borderRadius: 8, opacity }, style]} />;
+  return <Animated.View style={[{ backgroundColor: DESIGN.colors.borderSubtle, borderRadius: 8, opacity }, style]} />;
 }
 
 export function ListSkeleton({ count = 3 }: { count?: number }) {
   return (
     <View style={{ gap: 12 }}>
       {Array.from({ length: count }, (_, index) => (
-        <View key={index} style={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: 16, borderWidth: 1, gap: 10, padding: 16 }}>
+        <View key={index} style={{ backgroundColor: DESIGN.colors.surface, borderColor: DESIGN.colors.borderSubtle, borderRadius: 16, borderWidth: 1, gap: 10, padding: 16 }}>
           <Skeleton style={{ height: 18, width: "62%" }} />
           <Skeleton style={{ height: 13, width: "38%" }} />
           <Skeleton style={{ height: 13, width: "86%" }} />

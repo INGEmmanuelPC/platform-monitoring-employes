@@ -73,7 +73,7 @@ export default function Select<T extends FieldValues>({
                     className="w-full"
                     style={({ pressed }) => [
                       {
-                        backgroundColor: selected ? "#E8F1F5" : DESIGN.colors.surface,
+                        backgroundColor: selected ? DESIGN.colors.selected : DESIGN.colors.surface,
                         borderColor: selected ? DESIGN.colors.brand : DESIGN.colors.border,
                         borderWidth: 1,
                         borderBottomWidth: 3,

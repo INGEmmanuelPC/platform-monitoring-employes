@@ -6,6 +6,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { DESIGN, RAISED_SURFACE } from "@/constants/design";
 
 import { AccountContent } from "./AccountContent";
 
@@ -62,14 +63,15 @@ export function AccountDrawer({ visible, onClose }: AccountDrawerProps) {
 
 const styles = StyleSheet.create({
   backdrop: {
-    backgroundColor: "#000000",
+    backgroundColor: DESIGN.colors.text,
   },
   drawer: {
     position: "absolute",
     top: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: "#fafafa",
+    backgroundColor: DESIGN.colors.canvas,
+    ...RAISED_SURFACE,
     elevation: 12,
     shadowColor: "#000000",
     shadowOffset: { width: 3, height: 0 },

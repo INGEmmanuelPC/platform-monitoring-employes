@@ -2,6 +2,7 @@ import { Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import Field from "@/components/Field";
+import { DESIGN } from "@/constants/design";
 
 import { AuthFormLayout } from "./components/AuthFormLayout";
 import { AuthSwitchLink } from "./components/AuthSwitchLink";
@@ -16,8 +17,15 @@ export default function LoginScreen() {
         <Field control={control} name="email" label="Correo electrónico" placeholder="tu@correo.com" keyboardType="email-address" autoComplete="email" maxLength={160} rules={{ required: "Ingresa tu correo electrónico.", pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Ingresa un correo válido." } }} />
         <Field control={control} name="password" label="Contraseña" placeholder="Tu contraseña" secureTextEntry autoComplete="password" maxLength={128} rules={{ required: "Ingresa tu contraseña." }} />
       </View>
-      {serverError ? <Text className="text-sm text-red-600">{serverError}</Text> : null}
-      <Button text="Iniciar sesión" onPress={submit} disabled={isSubmitting} loading={isSubmitting} />
+      {serverError ? <Text className="text-sm" style={{ color: DESIGN.colors.error }}>{serverError}</Text> : null}
+      <Button
+        text="Iniciar sesión"
+        onPress={() => void submit()}
+        disabled={isSubmitting}
+        loading={isSubmitting}
+        accessibilityHint="Valida tus credenciales y abre la pantalla principal."
+        testID="login-submit"
+      />
       <AuthSwitchLink prompt="¿No tienes una cuenta?" linkText="Regístrate" href="/register" />
     </AuthFormLayout>
   );

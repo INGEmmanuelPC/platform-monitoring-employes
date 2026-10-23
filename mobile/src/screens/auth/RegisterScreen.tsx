@@ -1,6 +1,7 @@
 import { Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
+import { DESIGN } from "@/constants/design";
 import Field from "@/components/Field";
 
 import { AuthFormLayout } from "./components/AuthFormLayout";
@@ -18,7 +19,7 @@ export default function RegisterScreen() {
         <Field control={control} name="password" label="Contraseña" placeholder="Mínimo 6 caracteres" secureTextEntry autoComplete="new-password" maxLength={128} rules={{ required: "Ingresa una contraseña.", minLength: { value: 6, message: "Usa al menos 6 caracteres." } }} />
         <Field control={control} name="passwordConfirmation" label="Confirmar contraseña" placeholder="Repite tu contraseña" secureTextEntry autoComplete="new-password" maxLength={128} rules={{ required: "Confirma tu contraseña.", validate: (value) => value === password || "Las contraseñas no coinciden." }} />
       </View>
-      {serverError ? <Text className="text-sm text-red-600">{serverError}</Text> : null}
+      {serverError ? <Text className="text-sm" style={{ color: DESIGN.colors.error }}>{serverError}</Text> : null}
       <Button text="Crear cuenta" onPress={submit} disabled={isSubmitting} loading={isSubmitting} />
       <AuthSwitchLink prompt="¿Ya tienes una cuenta?" linkText="Inicia sesión" href="/login" />
     </AuthFormLayout>
