@@ -5,6 +5,7 @@ import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { ListSkeleton } from "@/components/Skeleton";
+import { DESIGN } from "@/constants/design";
 import { type EntityName } from "@/src/api/entities";
 
 import { EntityListItem } from "./components/EntityListItem";
@@ -17,13 +18,13 @@ export function EntityListScreen({ entity }: { entity: EntityName }) {
   const { items, search, setSearch, loading, error, reload } = useEntityList(entity);
 
   return (
-    <ScrollView className="flex-1 bg-neutral-50" keyboardShouldPersistTaps="handled">
+    <ScrollView className="flex-1" style={{ backgroundColor: DESIGN.colors.canvas }} keyboardShouldPersistTaps="handled">
       <View className="gap-4 p-4">
         <View className="flex-row items-center justify-between">
-          <Text className="font-display text-2xl text-neutral-900">{definition.title}</Text>
+          <Text className="font-display text-2xl" style={{ color: DESIGN.colors.text }}>{definition.title}</Text>
           <Button text="Nuevo" onPress={() => router.push(createPaths[entity] as never)} />
         </View>
-        <TextInput accessibilityLabel="Buscar registros" placeholderTextColor="#64748b" className="min-h-12 rounded-xl border border-neutral-300 bg-white px-3 text-base text-neutral-900" placeholder="Buscar" value={search} onChangeText={setSearch} />
+        <TextInput accessibilityLabel="Buscar registros" placeholderTextColor={DESIGN.colors.textSecondary} className="min-h-12 rounded-xl border px-3 text-base" style={{ minHeight: 48, color: DESIGN.colors.text, backgroundColor: DESIGN.colors.surface, borderColor: DESIGN.colors.border }} placeholder="Buscar" value={search} onChangeText={setSearch} />
         {loading ? <ListSkeleton count={3} /> : null}
         {error ? <ErrorBanner message={error} onRetry={reload} /> : null}
         {!loading && !error && items.length === 0 ? <EmptyState message="No hay registros que mostrar con los filtros actuales." /> : null}

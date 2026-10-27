@@ -11,7 +11,7 @@ type Props = {
 export function AuthSwitchLink({ prompt, linkText, href }: Props) {
   return (
     <View className="flex-row justify-center gap-1">
-      <Text className="text-sm text-neutral-600">{prompt}</Text>
+      <Text className="text-sm" style={{ color: DESIGN.colors.textSecondary }}>{prompt}</Text>
       <Link href={href} asChild>
         <Pressable
           accessibilityRole="button"

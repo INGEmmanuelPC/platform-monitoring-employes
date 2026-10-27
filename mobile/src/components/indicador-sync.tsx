@@ -1,6 +1,7 @@
 import { Text, View } from "react-native";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { DESIGN } from "@/constants/design";
 import { useTrabajos } from "@/src/data/use-trabajos";
 
 // Eje 2 del contrato de estados. Va en el encabezado y se ve desde cualquier
@@ -18,9 +19,11 @@ export function IndicadorSync() {
       <IconSymbol
         size={20}
         name={todoSubido ? "checkmark.icloud.fill" : "icloud.slash.fill"}
-        color={todoSubido ? "#15703D" : "#90520A"}
+        color={todoSubido ? DESIGN.status.sync.SINCRONIZADO.foreground : DESIGN.status.sync.SOLO_LOCAL.foreground}
       />
-      <Text className={todoSubido ? "text-xs text-green-800" : "text-xs text-amber-700"}>
+      <Text className="text-xs" style={{
+        color: todoSubido ? DESIGN.status.sync.SINCRONIZADO.foreground : DESIGN.status.sync.SOLO_LOCAL.foreground,
+      }}>
         {todoSubido ? "Todo subido" : `${pendientes} sin subir`}
       </Text>
     </View>

@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     backgroundColor: DESIGN.colors.canvas,
     ...RAISED_SURFACE,
     elevation: 12,
-    shadowColor: "#000000",
+    shadowColor: DESIGN.colors.text,
     shadowOffset: { width: 3, height: 0 },
     shadowOpacity: 0.2,
     shadowRadius: 8,

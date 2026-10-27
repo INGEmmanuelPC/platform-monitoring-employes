@@ -42,8 +42,8 @@ export function useWorkSignature() {
       await guardarFirma(database, id, signaturePath);
       await finalizarTrabajo(database, session.user.id, id);
       router.replace("/");
-    } catch {
-      setError("No se pudo finalizar el trabajo en el dispositivo.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo finalizar el trabajo en el dispositivo.");
     } finally {
       setSaving(false);
     }

@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 
 import { getEvidencias, getTrabajo } from "@/src/data/trabajos";
@@ -17,38 +17,41 @@ export function useWorkOrderFlow() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
-    const tecnicoId = session?.user.id;
-
-    if (!id || !tecnicoId) {
-      setTrabajo(null);
-      setLoading(false);
-      return () => {
-        active = false;
-      };
+  const refresh = useCallback(async (isActive: () => boolean = () => true) => {
+    const technicianId = session?.user.id;
+    if (!id || !technicianId) {
+      if (isActive()) {
+        setTrabajo(null);
+        setLoading(false);
+      }
+      return;
     }
 
-    setLoading(true);
-    setError(null);
-    Promise.all([getTrabajo(database, tecnicoId, id), getEvidencias(database, id)])
-      .then(([trabajoLocal, evidencias]) => {
-        if (active) {
-          setTrabajo(trabajoLocal);
-          setEvidenceTypes(evidencias.map((evidencia) => evidencia.tipo));
-        }
-      })
-      .catch(() => {
-        if (active) setError("No se pudo cargar el trabajo guardado en el dispositivo.");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
+    if (isActive()) {
+      setLoading(true);
+      setError(null);
+    }
+    try {
+      const [trabajoLocal, evidencias] = await Promise.all([
+        getTrabajo(database, technicianId, id),
+        getEvidencias(database, id),
+      ]);
+      if (isActive()) {
+        setTrabajo(trabajoLocal);
+        setEvidenceTypes(evidencias.map((evidencia) => evidencia.tipo));
+      }
+    } catch {
+      if (isActive()) setError("No se pudo cargar el trabajo guardado en el dispositivo.");
+    } finally {
+      if (isActive()) setLoading(false);
+    }
   }, [database, id, session?.user.id]);
+
+  useEffect(() => {
+    let active = true;
+    void refresh(() => active);
+    return () => { active = false; };
+  }, [refresh]);
 
   const pasos: Paso[] = [
     { ruta: "llegada", titulo: "Marcar llegada", icono: "mappin.and.ellipse", hecho: trabajo?.llegada_at !== null && trabajo?.llegada_at !== undefined },
@@ -57,5 +60,5 @@ export function useWorkOrderFlow() {
     { ruta: "firma", titulo: "Firma del cliente", icono: "signature", hecho: evidenceTypes.includes("FIRMA") },
   ];
 
-  return { error, loading, pasos, trabajo };
+  return { error, loading, pasos, refresh, trabajo };
 }

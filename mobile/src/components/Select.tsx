@@ -57,7 +57,7 @@ export default function Select<T extends FieldValues>({
             Selecciona una opción
           </Text>
           {options.length === 0 ? (
-            <Text className="rounded-lg bg-amber-50 p-3 text-amber-800">
+            <Text className="rounded-lg p-3" style={{ backgroundColor: DESIGN.status.trabajo.EN_SITIO.background, color: DESIGN.status.trabajo.EN_SITIO.foreground }}>
               {empty ?? "No hay opciones disponibles."}
             </Text>
           ) : (

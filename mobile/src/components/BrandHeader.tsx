@@ -15,7 +15,7 @@ export function BrandHeader() {
         contentFit="contain"
       />
       <Text className="font-display text-3xl" style={{ color: DESIGN.colors.brand }}>Cuadrilla</Text>
-      <Text className="text-center font-slogan text-sm text-neutral-600">
+      <Text className="text-center font-slogan text-sm" style={{ color: DESIGN.colors.textSecondary }}>
         El trabajo lo haces tú. El reporte, solo.
       </Text>
     </View>

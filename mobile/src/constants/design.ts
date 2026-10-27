@@ -34,6 +34,7 @@ export const DESIGN = {
     errorSurface: "#FCE9E8",
     disabled: "#DCE5E9",
     disabledText: "#445760",
+    backdrop: "rgba(15, 32, 42, 0.55)",
   },
   radius: {
     control: 14,
@@ -47,6 +48,7 @@ export const DESIGN = {
       EN_SITIO: { background: "#FFF0CE", foreground: "#754500", border: "#E9D19A" },
       COMPLETADO: { background: "#E5F3E9", foreground: "#1E5A36", border: "#B8D8C1" },
       CERRADO: { background: "#EEF2F3", foreground: "#455A64", border: "#CDD7DB" },
+      CANCELADO: { background: "#FCE9E8", foreground: "#8E1B1B", border: "#E8B8B5" },
     } satisfies Record<EstadoTrabajo, StatusColors>,
     sync: {
       SOLO_LOCAL: { background: "#FFF0CE", foreground: "#754500", border: "#E9D19A" },

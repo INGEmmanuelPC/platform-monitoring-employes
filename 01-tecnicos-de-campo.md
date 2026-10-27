@@ -5,14 +5,15 @@
 
 ## Diagnóstico
 
-Es el proyecto con la arquitectura más madura del curso: offline-first con SQLite como fuente de verdad, cola de sincronización transaccional, ADRs, 23 rutas tipadas y 11 hooks. El corte V0 funciona de punta a punta.
+El proyecto tiene una base offline-first con SQLite como fuente de verdad, cola de sincronización transaccional, ADRs, 23 rutas tipadas y 11 hooks. El flujo de llegada, evidencia y firma está implementado en código; falta probarlo completo sin señal y en un dispositivo.
 
-El riesgo **no** es técnico, es de alcance: el documento plantea GPS, máquina de estados formal, consentimiento, eventos idempotentes, audio, firma, IA y panel Next.js. No cabe todo en 7 semanas. Lo que vuelve esto un MVP demostrable es **cerrar el ciclo de un trabajo de verdad** (firma real + "voy en camino" + cancelación + que el admin pueda cerrar), no la transcripción con IA.
+El riesgo **no** es técnico, es de alcance: el documento plantea GPS, máquina de estados formal, consentimiento, eventos idempotentes, audio, firma, IA y panel Next.js. No cabe todo en 7 semanas. Lo que vuelve esto un MVP demostrable es **cerrar el ciclo de un trabajo de verdad** (firma real + "voy en camino" + cancelación + que el admin pueda cerrar), no la transcripción con IA. El backend ya rechaza transiciones de estado inválidas; falta probar esa respuesta con el backend conectado a Supabase.
 
 Observaciones:
-- La firma y el dictado son *placeholders*: hoy el requisito "mínimo 1 foto + firma" de `EN_SITIO → COMPLETADO` no se puede cumplir de verdad.
+- La firma ya tiene un lienzo táctil con SVG y se guarda como evidencia local en SQLite; falta verificar el flujo en Expo Go/dispositivo.
+- El dictado actual guarda una nota escrita, no audio ni transcripción.
 - `COMPLETADO → CERRADO` exige un reporte `APROBADO`, pero sin IA ni panel admin nadie puede aprobar. Hay que darle al admin una acción mínima dentro de la app.
-- Sin pruebas automatizadas, la máquina de estados pura de `src/domain/` es el lugar ideal para empezar (funciones puras = fáciles de probar).
+- La máquina de estados pura de `src/domain/` se verifica con `node:test`; aún falta probar el flujo en modo avión y en dispositivo.
 - Usan Expo SDK 54 + NativeWind v5 (preview). La guía de diseño del curso usa NativeWind v4: las clases son casi idénticas, pero `boxShadow` y gradientes nativos requieren React Native 0.76+ con la nueva arquitectura (SDK 54 la trae).
 
 ## Fuera del alcance (dejarlo explícito en el documento)
@@ -33,17 +34,17 @@ Estilo elegido: **Skeuomorfismo**. La elevación y los bordes táctiles hacen qu
 - [x] Construir los componentes base en ese estilo: botón primario/secundario, tarjeta de trabajo, campo de texto, indicador de estado (los tres ejes).
 - [x] Aplicarlo a las pantallas principales: Hoy, detalle del trabajo y los pasos del flujo (llegada → evidencia → nota → firma).
 - [x] Estados visuales de presionado y deshabilitado en todos los botones.
-- [x] Contraste legible a pleno sol (texto mínimo 4.5:1) y áreas de toque de al menos 48 × 48. Pares verificados en `mobile/src/constants/design.ts`; `MIN_TOUCH_TARGET` y `MIN_HIT_SLOP` son los tokens que todos los `Pressable` referencian.
-- [x] Probado en Android **y** iOS (las sombras se ven distinto en cada uno). `RAISED_SURFACE` ahora resuelve con `Platform.select` (sombras nativas en iOS, `elevation` + `shadowColor` en Android), reforzado con el borde inferior ya presente en cada superficie.
+- [x] Contraste legible a pleno sol (texto mínimo 4.5:1) y áreas de toque de al menos 48 × 48. Pares verificados en `mobile/src/constants/design.ts`; cada `Pressable` ofrece al menos 48 pt de área y los objetivos pequeños usan `MIN_HIT_SLOP`.
+- [ ] Pendiente de verificar visualmente en Android **y** iOS. `RAISED_SURFACE` resuelve con `Platform.select` (sombras nativas en iOS, `elevation` + `shadowColor` en Android), reforzado con el borde inferior ya presente en cada superficie.
 
 ### Fase 1 · Cerrar el flujo del trabajo (20 oct – 2 nov)
 
-- [ ] Crear `src/domain/estadoTrabajo.ts` con `transicionarTrabajo(estado, accion, contexto)` y sus guardas.
-- [ ] Hacer que `src/data/trabajos.ts` llame a la máquina **antes** de escribir en SQLite (dentro de la misma `withTransactionAsync`).
-- [ ] Agregar `CANCELADO` al tipo, al CHECK de Supabase y al enum de Zod del backend.
-- [ ] Botón "Voy en camino" (`marcarEnCamino()` + `useWorkDeparture`) como primer paso del flujo; `marcarLlegada()` exige `EN_CAMINO`.
-- [ ] Lienzo de firma real (por ejemplo `react-native-signature-canvas`, o `react-native-svg` + gesture-handler) guardando la firma como SVG/PNG en SQLite.
-- [ ] Configurar un runner de pruebas (Jest con `jest-expo`, o Vitest solo para `src/domain/`) y probar todas las transiciones válidas e inválidas.
+- [x] Crear `src/domain/estadoTrabajo.ts` con `transicionarTrabajo(estado, accion, contexto)` y sus guardas.
+- [x] Hacer que `src/data/trabajos.ts` llame a la máquina **antes** de escribir en SQLite (dentro de la misma `withTransactionAsync`).
+- [x] Agregar `CANCELADO` al tipo, al CHECK de Supabase y al enum de Zod del backend.
+- [x] Botón "Voy en camino" (`marcarEnCamino()` + `useWorkDeparture`) como primer paso del flujo; `marcarLlegada()` exige `EN_CAMINO`.
+- [x] Lienzo de firma real con `react-native-svg`; los trazos se guardan como evidencia local en SQLite. El flujo aún requiere prueba en dispositivo.
+- [x] Configurar runner `node:test` sin dependencias nuevas y probar transiciones y guardas con `npm test`.
 
 ### Fase 2 · Ubicación y administración mínima (3 – 16 nov)
 

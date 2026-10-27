@@ -34,7 +34,7 @@ export const ordenSchema = z.object({
   tecnico_id: z.string().uuid().optional(),
   descripcion: z.string().trim().min(2).max(1000),
   direccion: z.string().trim().max(240).default(""),
-  estado: z.enum(["ASIGNADO", "EN_CAMINO", "EN_SITIO", "COMPLETADO", "CERRADO"]).default("ASIGNADO"),
+  estado: z.enum(["ASIGNADO", "EN_CAMINO", "EN_SITIO", "COMPLETADO", "CERRADO", "CANCELADO"]).default("ASIGNADO"),
   hora_programada: z.string().datetime().nullable().optional(),
   observaciones: z.string().trim().max(2000).default(""),
 });

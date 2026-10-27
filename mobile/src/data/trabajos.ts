@@ -2,6 +2,7 @@ import type { SQLiteDatabase } from "expo-sqlite";
 
 import type { TrabajoLocal } from "./types";
 import { syncOperations, uploadEvidence, type SyncOperation } from "@/src/api/entities";
+import { transicionarTrabajo } from "@/src/domain/estadoTrabajo";
 
 const TRABAJO_COLUMNS = `
   id,
@@ -71,9 +72,15 @@ export async function upsertTrabajos(
         direccion = excluded.direccion,
         descripcion = excluded.descripcion,
         hora_programada = excluded.hora_programada,
-        estado = excluded.estado,
+        estado = CASE
+          WHEN trabajos.sync IN ('SOLO_LOCAL', 'EN_COLA', 'CONFLICTO') THEN trabajos.estado
+          ELSE excluded.estado
+        END,
         reporte = excluded.reporte,
-        updated_at = excluded.updated_at`,
+        updated_at = CASE
+          WHEN trabajos.sync IN ('SOLO_LOCAL', 'EN_COLA', 'CONFLICTO') THEN trabajos.updated_at
+          ELSE excluded.updated_at
+        END`,
       trabajo.id,
       trabajo.tecnico_id,
       trabajo.cliente,
@@ -133,14 +140,74 @@ export async function guardarFirma(database: SQLiteDatabase, trabajoId: string, 
 export async function finalizarTrabajo(database: SQLiteDatabase, tecnicoId: string, trabajoId: string) {
   const now = new Date().toISOString();
   await database.withTransactionAsync(async () => {
-    await database.runAsync(
-      `UPDATE trabajos SET estado = 'COMPLETADO', sync = 'EN_COLA', hora_salida = ?, updated_at = ?
-       WHERE id = ? AND tecnico_id = ?`, now, now, trabajoId, tecnicoId,
+    const trabajo = await database.getFirstAsync<Pick<TrabajoLocal, "estado">>(
+      "SELECT estado FROM trabajos WHERE id = ? AND tecnico_id = ?",
+      trabajoId,
+      tecnicoId,
     );
+    if (!trabajo) throw new Error("No se encontró el trabajo de este técnico.");
+
+    const evidencias = await database.getFirstAsync<{ tieneFirma: number; tieneFoto: number }>(
+      `SELECT
+         EXISTS(SELECT 1 FROM evidencias WHERE trabajo_id = ? AND tipo = 'FIRMA') AS tieneFirma,
+         EXISTS(SELECT 1 FROM evidencias WHERE trabajo_id = ? AND tipo IN ('FOTO_ANTES', 'FOTO_DESPUES')) AS tieneFoto`,
+      trabajoId,
+      trabajoId,
+    );
+    const nuevoEstado = transicionarTrabajo(trabajo.estado, "completar", {
+      tieneFirma: Boolean(evidencias?.tieneFirma),
+      tieneFoto: Boolean(evidencias?.tieneFoto),
+    });
+    const updated = await database.runAsync(
+      `UPDATE trabajos SET estado = ?, sync = 'EN_COLA', hora_salida = ?, updated_at = ?
+       WHERE id = ? AND tecnico_id = ? AND estado = ?`,
+      nuevoEstado,
+      now,
+      now,
+      trabajoId,
+      tecnicoId,
+      trabajo.estado,
+    );
+    if (updated.changes !== 1) throw new Error("El trabajo cambió de estado. Vuelve a abrirlo e inténtalo de nuevo.");
     await database.runAsync(
       `INSERT INTO sync_queue (entity, entity_id, operation, payload, created_at)
        VALUES ('trabajos', ?, 'UPDATE', ?, ?)`, trabajoId,
-      JSON.stringify({ estado: "COMPLETADO", hora_salida: now }), now,
+      JSON.stringify({ estado: nuevoEstado, hora_salida: now }), now,
+    );
+  });
+}
+
+export async function marcarEnCamino(
+  database: SQLiteDatabase,
+  tecnicoId: string,
+  trabajoId: string,
+) {
+  const now = new Date().toISOString();
+  await database.withTransactionAsync(async () => {
+    const trabajo = await database.getFirstAsync<Pick<TrabajoLocal, "estado">>(
+      "SELECT estado FROM trabajos WHERE id = ? AND tecnico_id = ?",
+      trabajoId,
+      tecnicoId,
+    );
+    if (!trabajo) throw new Error("No se encontró el trabajo de este técnico.");
+
+    const nuevoEstado = transicionarTrabajo(trabajo.estado, "marcarEnCamino");
+    const updated = await database.runAsync(
+      `UPDATE trabajos SET estado = ?, sync = 'EN_COLA', updated_at = ?
+       WHERE id = ? AND tecnico_id = ? AND estado = ?`,
+      nuevoEstado,
+      now,
+      trabajoId,
+      tecnicoId,
+      trabajo.estado,
+    );
+    if (updated.changes !== 1) throw new Error("El trabajo cambió de estado. Vuelve a abrirlo e inténtalo de nuevo.");
+    await database.runAsync(
+      `INSERT INTO sync_queue (entity, entity_id, operation, payload, created_at)
+       VALUES ('trabajos', ?, 'UPDATE', ?, ?)`,
+      trabajoId,
+      JSON.stringify({ estado: nuevoEstado }),
+      now,
     );
   });
 }
@@ -153,22 +220,33 @@ export async function marcarLlegada(
   const llegadaAt = new Date().toISOString();
 
   await database.withTransactionAsync(async () => {
-    await database.runAsync(
+    const trabajo = await database.getFirstAsync<Pick<TrabajoLocal, "estado">>(
+      "SELECT estado FROM trabajos WHERE id = ? AND tecnico_id = ?",
+      trabajoId,
+      tecnicoId,
+    );
+    if (!trabajo) throw new Error("No se encontró el trabajo de este técnico.");
+
+    const nuevoEstado = transicionarTrabajo(trabajo.estado, "marcarLlegada");
+    const updated = await database.runAsync(
       `UPDATE trabajos
-       SET estado = 'EN_SITIO', sync = 'EN_COLA', llegada_at = ?, updated_at = ?
-       WHERE id = ? AND tecnico_id = ?`,
+       SET estado = ?, sync = 'EN_COLA', llegada_at = ?, updated_at = ?
+       WHERE id = ? AND tecnico_id = ? AND estado = ?`,
+      nuevoEstado,
       llegadaAt,
       llegadaAt,
       trabajoId,
       tecnicoId,
+      trabajo.estado,
     );
+    if (updated.changes !== 1) throw new Error("El trabajo cambió de estado. Vuelve a abrirlo e inténtalo de nuevo.");
     await database.runAsync(
       `INSERT INTO sync_queue (entity, entity_id, operation, payload, created_at)
        VALUES (?, ?, ?, ?, ?)`,
       "trabajos",
       trabajoId,
       "UPDATE",
-      JSON.stringify({ estado: "EN_SITIO", llegada_at: llegadaAt }),
+      JSON.stringify({ estado: nuevoEstado, llegada_at: llegadaAt }),
       llegadaAt,
     );
   });
@@ -245,18 +323,36 @@ export async function processSyncQueue(database: SQLiteDatabase) {
   }
 
   const { results } = await syncOperations(prepared);
+  const affectedWorkIds = new Set<string>();
   for (const result of results) {
     if (result.synced) {
       await database.runAsync("DELETE FROM sync_queue WHERE id = ?", result.id);
+      const operation = prepared.find((item) => item.id === result.id);
+      const trabajoId = operation?.entity === "trabajos"
+        ? operation.entity_id
+        : (operation?.payload as { trabajo_id?: unknown } | undefined)?.trabajo_id;
+      if (typeof trabajoId === "string") affectedWorkIds.add(trabajoId);
     }
   }
-  for (const operation of prepared) {
-    const trabajoId = operation.entity === "trabajos"
-      ? operation.entity_id
-      : (operation.payload as { trabajo_id?: unknown }).trabajo_id;
-    if (typeof trabajoId === "string") {
+
+  for (const trabajoId of affectedWorkIds) {
+    const queued = await database.getAllAsync<{
+      entity: "trabajos" | "evidencias";
+      entity_id: string;
+      payload: string;
+    }>("SELECT entity, entity_id, payload FROM sync_queue");
+    const stillPending = queued.some((operation) => {
+      if (operation.entity === "trabajos") return operation.entity_id === trabajoId;
+      try {
+        return JSON.parse(operation.payload).trabajo_id === trabajoId;
+      } catch {
+        return false;
+      }
+    });
+    if (!stillPending) {
       await database.runAsync(
-        `UPDATE trabajos SET sync = 'SINCRONIZADO' WHERE id = ?`, trabajoId,
+        "UPDATE trabajos SET sync = 'SINCRONIZADO' WHERE id = ?",
+        trabajoId,
       );
     }
   }

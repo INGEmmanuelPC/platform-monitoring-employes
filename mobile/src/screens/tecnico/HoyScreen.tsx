@@ -10,7 +10,9 @@ import { TrabajoHoyCard } from "./components/TrabajoHoyCard";
 
 export default function HoyScreen() {
   const { trabajos, loading, error } = useTrabajos();
-  const pendientes = trabajos.filter((trabajo) => trabajo.estado !== "COMPLETADO" && trabajo.estado !== "CERRADO");
+  const pendientes = trabajos.filter((trabajo) =>
+    trabajo.estado !== "COMPLETADO" && trabajo.estado !== "CERRADO" && trabajo.estado !== "CANCELADO",
+  );
 
   return (
     <ScrollView className="flex-1" style={{ backgroundColor: DESIGN.colors.canvas }}>

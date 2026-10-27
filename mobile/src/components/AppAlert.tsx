@@ -19,11 +19,31 @@ type AlertContextValue = {
 
 const AlertContext = createContext<AlertContextValue | undefined>(undefined);
 
-const kindStyles: Record<AlertKind, { panel: string; title: string; button: string }> = {
-  success: { panel: "#E5F3E9", title: "#1E5A36", button: "#1E5A36" },
-  error: { panel: DESIGN.colors.errorSurface, title: DESIGN.colors.error, button: DESIGN.colors.error },
-  warning: { panel: "#FFF0CE", title: "#754500", button: "#754500" },
-  info: { panel: "#E4F3FA", title: "#0D5278", button: "#0D5278" },
+const kindStyles: Record<AlertKind, { panel: string; title: string; button: string; buttonBorder: string }> = {
+  success: {
+    panel: DESIGN.status.trabajo.COMPLETADO.background,
+    title: DESIGN.status.trabajo.COMPLETADO.foreground,
+    button: DESIGN.status.trabajo.COMPLETADO.foreground,
+    buttonBorder: DESIGN.status.trabajo.COMPLETADO.foreground,
+  },
+  error: {
+    panel: DESIGN.colors.errorSurface,
+    title: DESIGN.colors.error,
+    button: DESIGN.colors.error,
+    buttonBorder: DESIGN.colors.dangerPressed,
+  },
+  warning: {
+    panel: DESIGN.status.trabajo.EN_SITIO.background,
+    title: DESIGN.status.trabajo.EN_SITIO.foreground,
+    button: DESIGN.status.trabajo.EN_SITIO.foreground,
+    buttonBorder: DESIGN.status.trabajo.EN_SITIO.foreground,
+  },
+  info: {
+    panel: DESIGN.status.trabajo.EN_CAMINO.background,
+    title: DESIGN.status.trabajo.EN_CAMINO.foreground,
+    button: DESIGN.status.trabajo.EN_CAMINO.foreground,
+    buttonBorder: DESIGN.status.trabajo.EN_CAMINO.foreground,
+  },
 };
 
 export function AppAlertProvider({ children }: PropsWithChildren) {
@@ -39,7 +59,7 @@ export function AppAlertProvider({ children }: PropsWithChildren) {
     <AlertContext.Provider value={value}>
       {children}
       <Modal visible={alert !== null} transparent animationType="fade" onRequestClose={() => setAlert(null)}>
-        <View className="flex-1 items-center justify-center bg-black/50 p-6">
+        <View className="flex-1 items-center justify-center p-6" style={{ backgroundColor: DESIGN.colors.backdrop }}>
           <View
             accessibilityViewIsModal
             className="w-full max-w-md gap-4 rounded-2xl border p-5"
@@ -54,7 +74,7 @@ export function AppAlertProvider({ children }: PropsWithChildren) {
               accessibilityLabel={alert?.confirmText ?? "Aceptar"}
               className="items-center justify-center rounded-xl px-4"
               style={({ pressed }) => [
-                { backgroundColor: styles.button, borderColor: DESIGN.colors.dangerPressed, borderBottomWidth: 3, borderRadius: DESIGN.radius.control, minHeight: MIN_TOUCH_TARGET, ...RAISED_SURFACE },
+                { backgroundColor: styles.button, borderColor: styles.buttonBorder, borderBottomWidth: 3, borderRadius: DESIGN.radius.control, minHeight: MIN_TOUCH_TARGET, ...RAISED_SURFACE },
                 pressed ? { opacity: 0.8 } : undefined,
               ]}
               onPress={() => {

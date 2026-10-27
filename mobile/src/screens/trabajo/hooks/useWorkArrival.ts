@@ -24,8 +24,8 @@ export function useWorkArrival() {
     try {
       await marcarLlegada(database, session.user.id, id);
       router.replace({ pathname: "/trabajo/[id]/evidencia", params: { id } });
-    } catch {
-      setError("No se pudo guardar la llegada en el dispositivo.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo guardar la llegada en el dispositivo.");
     } finally {
       setSaving(false);
     }

@@ -1,5 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
+import { DESIGN } from "@/constants/design";
 
 import { type EntityName } from "@/src/api/entities";
 
@@ -18,7 +19,7 @@ export function EntityDetailScreen({ entity }: { entity: EntityName }) {
   } = useEntityDelete(entity, id);
   if (!id) return null;
   return (
-    <View className="flex-1 bg-neutral-50 p-4">
+    <View className="flex-1 p-4" style={{ backgroundColor: DESIGN.colors.canvas }}>
       <EntityFormScreen entity={entity} edit />
       <DeleteEntityPanel
         entity={entity}

@@ -1,6 +1,7 @@
 import { ScrollView, View } from "react-native";
 
 import { Button } from "@/components/Button";
+import { DESIGN } from "@/constants/design";
 import { useTrabajos } from "@/src/data/use-trabajos";
 import { useAuth } from "@/src/session/AuthProvider";
 
@@ -19,7 +20,7 @@ export function AccountContent() {
   const displayName = session?.user.user_metadata.full_name ?? "Técnico";
 
   return (
-    <ScrollView className="flex-1 bg-neutral-50">
+    <ScrollView className="flex-1" style={{ backgroundColor: DESIGN.colors.canvas }}>
       <View className="gap-4 p-4">
         <AccountProfileCard name={displayName} email={session?.user.email} />
         <PendingSyncCard

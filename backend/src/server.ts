@@ -5,6 +5,7 @@ import { z, type ZodError } from "zod";
 
 import { config } from "./config.js";
 import { createAdminClient, createRequestClient } from "./supabase.js";
+import { esTransicionTrabajoValida, type EstadoTrabajoServidor } from "./trabajo-state.js";
 import {
   clienteSchema,
   credentialsSchema,
@@ -165,11 +166,55 @@ app.post("/sync", async (request, response, next) => {
           return;
         }
       }
+      if (table === "trabajos" && operation.operation === "UPDATE" && typeof operation.payload.estado === "string") {
+        const siguiente = operation.payload.estado as EstadoTrabajoServidor;
+        const { data: trabajo, error: lookupError } = await response.locals.supabase
+          .from("trabajos")
+          .select("id, estado")
+          .eq("id", operation.entity_id)
+          .maybeSingle();
+        if (lookupError) throw lookupError;
+        if (!trabajo) {
+          response.status(409).json({ error: "La orden no existe o ya no está disponible." });
+          return;
+        }
+        if (!esTransicionTrabajoValida(trabajo.estado, siguiente)) {
+          response.status(409).json({ error: `El servidor rechazó la transición de ${trabajo.estado} a ${siguiente}.` });
+          return;
+        }
+        const { data, error } = await response.locals.supabase
+          .from("trabajos")
+          .update(operation.payload)
+          .eq("id", operation.entity_id)
+          .eq("estado", trabajo.estado)
+          .select("id")
+          .maybeSingle();
+        if (error) throw error;
+        if (!data) {
+          response.status(409).json({ error: "La orden cambió mientras se sincronizaba. Actualízala e inténtalo de nuevo." });
+          return;
+        }
+        results.push({ id: operation.id, synced: true });
+        continue;
+      }
+      if (
+        table === "trabajos" &&
+        operation.operation === "INSERT" &&
+        operation.payload.estado !== undefined &&
+        operation.payload.estado !== "ASIGNADO"
+      ) {
+        response.status(409).json({ error: "Una orden nueva debe iniciar en estado ASIGNADO." });
+        return;
+      }
       const query = operation.operation === "UPDATE"
         ? response.locals.supabase.from(table).update(operation.payload).eq("id", operation.entity_id)
         : table === "evidencias"
           ? response.locals.supabase.from(table).insert(operation.payload)
-          : response.locals.supabase.from(table).insert({ id: operation.entity_id, ...operation.payload });
+          : response.locals.supabase.from(table).insert({
+            id: operation.entity_id,
+            ...operation.payload,
+            ...(table === "trabajos" ? { estado: "ASIGNADO" } : {}),
+          });
       const { error } = await query;
       if (error) throw error;
       results.push({ id: operation.id, synced: true });
@@ -302,6 +347,7 @@ function crudRoutes(path: string, table: "clientes" | "trabajos", schema: z.ZodO
         }
         values = {
           ...input,
+          estado: "ASIGNADO",
           cliente: client.nombre,
           tecnico_id: input.tecnico_id ?? response.locals.user.id,
         };
@@ -325,6 +371,36 @@ function crudRoutes(path: string, table: "clientes" | "trabajos", schema: z.ZodO
   app.patch(`${path}/:id`, async (request, response, next) => {
     try {
       const input = parse(patchSchema(schema), request.body);
+      if (table === "trabajos" && typeof input.estado === "string") {
+        const { data: trabajo, error: lookupError } = await response.locals.supabase
+          .from("trabajos")
+          .select("id, estado")
+          .eq("id", request.params.id)
+          .maybeSingle();
+        if (lookupError) throw lookupError;
+        if (!trabajo) {
+          response.status(404).json({ error: "La orden no existe." });
+          return;
+        }
+        if (!esTransicionTrabajoValida(trabajo.estado, input.estado as EstadoTrabajoServidor)) {
+          response.status(409).json({ error: `El servidor rechazó la transición de ${trabajo.estado} a ${input.estado}.` });
+          return;
+        }
+        let query = response.locals.supabase
+          .from("trabajos")
+          .update(input)
+          .eq("id", request.params.id)
+          .eq("estado", trabajo.estado)
+          .select();
+        const { data, error } = await query.maybeSingle();
+        if (error) throw error;
+        if (!data) {
+          response.status(409).json({ error: "La orden cambió mientras se actualizaba. Actualízala e inténtalo de nuevo." });
+          return;
+        }
+        response.json(data);
+        return;
+      }
       const { data, error } = await response.locals.supabase.from(table).update(input).eq("id", request.params.id).select().single();
       if (error) throw error;
       response.json(data);

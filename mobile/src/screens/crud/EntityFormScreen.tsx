@@ -15,17 +15,17 @@ export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: b
   return (
     <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView
-        className="flex-1 bg-neutral-50"
+        className="flex-1"
         style={{ backgroundColor: DESIGN.colors.canvas }}
         contentContainerClassName="gap-4 p-4 pb-8"
         keyboardShouldPersistTaps="handled"
       >
-        <Text className="font-display text-2xl text-neutral-900">
+        <Text className="font-display text-2xl" style={{ color: DESIGN.colors.text }}>
           {edit ? "Editar" : "Nuevo"} {definition.title.slice(0, -1)}
         </Text>
 
         {loading ? (
-          <View className="items-center gap-3 rounded-xl bg-white p-6">
+          <View className="items-center gap-3 rounded-xl p-6" style={{ backgroundColor: DESIGN.colors.surface }}>
             <ActivityIndicator color={DESIGN.colors.brand} />
             <Text style={{ color: DESIGN.colors.textSecondary }}>Cargando registro...</Text>
           </View>

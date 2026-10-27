@@ -8,7 +8,8 @@ export type EstadoTrabajo =
   | "EN_CAMINO"
   | "EN_SITIO"
   | "COMPLETADO"
-  | "CERRADO";
+  | "CERRADO"
+  | "CANCELADO";
 
 export type EstadoSync = "SOLO_LOCAL" | "EN_COLA" | "SINCRONIZADO" | "CONFLICTO";
 
@@ -26,6 +27,7 @@ export const ETIQUETA_TRABAJO: Record<EstadoTrabajo, string> = {
   EN_SITIO: "En sitio",
   COMPLETADO: "Terminado",
   CERRADO: "Cerrado",
+  CANCELADO: "Cancelado",
 };
 
 export const ETIQUETA_SYNC: Record<EstadoSync, string> = {

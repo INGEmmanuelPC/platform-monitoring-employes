@@ -8,6 +8,7 @@
 4. Copia todo el contenido de `001_schema_inicial.sql` y pulsa **Run**.
 5. Copia todo el contenido de `002_crud_backend.sql` y pulsa **Run**.
 6. Copia todo el contenido de `003_tecnicos_admin_rls.sql` y pulsa **Run**.
+7. Copia todo el contenido de `004_estado_cancelado.sql` y pulsa **Run** al actualizar una base ya creada.
 
 Las migraciones crean:
 

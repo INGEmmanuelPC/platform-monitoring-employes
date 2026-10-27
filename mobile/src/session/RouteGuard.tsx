@@ -26,7 +26,7 @@ export function RouteGuard({ children }: PropsWithChildren) {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-neutral-50">
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: DESIGN.colors.canvas }}>
         <ActivityIndicator size="large" color={DESIGN.colors.brand} />
       </View>
     );
