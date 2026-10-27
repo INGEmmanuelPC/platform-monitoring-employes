@@ -1,328 +1,97 @@
 # App Empleados
 
-Monorepo for the field-service employee platform. The Expo/React Native client and the Express API are independent modules with their own dependencies and TypeScript configuration.
+Aplicación para técnicos de servicio en campo. El monorepo contiene una app móvil Expo y una API Express; Supabase proporciona autenticación, PostgreSQL, RLS y almacenamiento de evidencias.
 
-## Structure
+## Estructura
 
-<<<<<<< Updated upstream
-- Registro, inicio y cierre de sesión mediante la API HTTP y Supabase Auth.
-- Persistencia segura de la sesión con `expo-secure-store`.
-- Rutas protegidas para el tecnico mediante Expo Router.
-- SQLite local como fuente de lectura para el trabajo de campo.
-- Refresco de trabajos desde Supabase cuando hay conectividad.
-- Registro local de llegada con hora y cola de sincronizacion.
-- Captura local de evidencias fotográficas antes y después, con subida diferida.
-- Notas de servicio y captura local de trazos de firma SVG.
-- CRUD autenticado de técnicos, clientes y órdenes de trabajo.
-- Políticas RLS para proteger perfiles, trabajos, clientes y evidencias.
+- `mobile/`: aplicación Expo Router / React Native.
+- `backend/`: API HTTP Express y conexión con Supabase.
+- `mobile/docs/supabase/`: esquema y migraciones SQL.
+- `01-tecnicos-de-campo.md`: checklist MVP del equipo.
+- `entrega-29-octubre.md`: criterios y estado de la entrega práctica.
 
-## Tecnologias
-
-- Expo SDK 54
-- React Native
-- TypeScript estricto
-- Expo Router
-- NativeWind v5 y Tailwind CSS v4
-- Supabase Auth y PostgreSQL
-- `expo-sqlite`
-- `expo-secure-store`
-- `expo-image-picker`
-- Zustand
+Para instrucciones detalladas de cada módulo, consulta [`mobile/README.md`](mobile/README.md) y [`backend/README.md`](backend/README.md).
 
 ## Requisitos
 
-- Node.js LTS
-- npm
-- Expo Go compatible con Expo SDK 54, o un development build compatible
-- Proyecto de Supabase
+- Node.js LTS y npm.
+- Expo Go compatible con Expo SDK 54, o un development build compatible.
+- Proyecto de Supabase configurado para la app y el backend.
 
-## Instalacion
+## Configuración y ejecución
 
-```bash
-npm install
-```
-
-## Configuración de Supabase
-
-1. Crea un proyecto en Supabase.
-2. En **Authentication > Providers > Email**, habilita el proveedor Email.
-3. Abre **SQL Editor** y ejecuta todo el archivo
-  `docs/supabase/001_schema_inicial.sql`.
-4. Ejecuta `docs/supabase/002_crud_backend.sql` para habilitar los tres CRUD,
-  las relaciones de clientes y el bucket privado de evidencias.
-5. Configura la confirmacion de correo segun el entorno.
-6. Crea un usuario desde la aplicacion o desde **Authentication > Users**.
-
-El esquema crea las tablas `profiles`, `trabajos`, `evidencias` y `clientes`,
-relacionadas con `auth.users`. También crea triggers, índices, un bucket privado
-para evidencias y políticas RLS. Las políticas aplicadas limitan el acceso a los
-datos que pertenecen al usuario autenticado.
-
-## Variables de entorno
-
-Copia el archivo de ejemplo:
-=======
-```text
-App-Empleados/
-├── backend/             Express API, Supabase integration
-├── mobile/              Expo SDK 54 application
-│   ├── app/             Expo Router routes
-│   └── src/              Components, hooks, constants, API, data, session
-└── README.md
-```
-
-## Requirements
-
-- Node.js LTS and npm
-- Expo Go compatible with Expo SDK 54, or a compatible development build
-- Supabase project credentials; see `mobile/README.md` and `backend/README.md`
-
-## Install
-
-Run in two terminals from the repository root:
->>>>>>> Stashed changes
-
-```powershell
-cd mobile
-npm install
-```
-
-<<<<<<< Updated upstream
-Completa `.env.local` con los valores publicos de Supabase:
-
-```env
-EXPO_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=tu-clave-publica
-EXPO_PUBLIC_API_URL=http://localhost:3000
-```
-
-Puedes obtenerlos en **Project Settings > API**:
-
-- **Project URL** -> `EXPO_PUBLIC_SUPABASE_URL`
-- **Publishable key** o antigua **anon key** -> `EXPO_PUBLIC_SUPABASE_ANON_KEY`
-
-Nunca uses `service_role`, `secret keys`, contrasenas ni tokens privados en la
-aplicacion movil. `.env.local` esta excluido de Git.
-
-## Crear un trabajo de prueba
-
-Despues de crear un usuario, ejecuta esta consulta en Supabase reemplazando el
-correo:
-
-```sql
-insert into public.trabajos (
-  tecnico_id,
-  cliente,
-  direccion,
-  descripcion,
-  hora_programada,
-  estado
-)
-select
-  id,
-  'Cliente de prueba',
-  'Carrera 10 #20-30',
-  'Revision de mantenimiento',
-  now(),
-  'ASIGNADO'
-from auth.users
-where email = 'tu-correo@ejemplo.com';
-```
-
-## Ejecutar
-
-Inicia el servidor de desarrollo:
-
-```bash
-npx expo start
-```
-
-Para limpiar la cache:
-
-```bash
-npx expo start -c
-```
-
-Opciones de prueba:
-
-- Presiona `a` para abrir en un emulador Android configurado.
-- Escanea el QR desde Expo Go en un dispositivo movil.
-- Usa `npx expo start --tunnel` si la red local no permite conexiones LAN.
-
-Despues de cambiar `.env.local`, reinicia Expo para que las variables se
-carguen nuevamente.
-
-## Backend HTTP
-
-El movil ya no llama directamente a Supabase para autenticarse ni para los
-CRUD. El backend valida el token Bearer y usa Supabase como proveedor de Auth,
-PostgreSQL y Storage.
+Instala las dependencias por separado en cada módulo:
 
 ```powershell
 cd backend
 Copy-Item .env.example .env
-# Completa SUPABASE_URL y SUPABASE_ANON_KEY en backend/.env
-=======
-```powershell
-cd backend
->>>>>>> Stashed changes
 npm install
 ```
 
-Configure `mobile/.env.local` from `mobile/.env.example` and configure
-`backend/.env` from `backend/.env.example`. Keep secret backend credentials only
-in `backend/.env`; do not put the service-role key in the mobile environment.
-
-## Run
-
-Start the API in one terminal:
+Completa `backend/.env` con las credenciales de Supabase y vuelve a la raíz del repo para iniciar la API:
 
 ```powershell
 cd backend
 npm run dev
 ```
 
-<<<<<<< Updated upstream
-El archivo `backend/.env.example` define `PORT`, `SUPABASE_URL`,
-`SUPABASE_ANON_KEY` y `CORS_ORIGIN`. El servidor también puede usar las
-variables públicas del `.env.local` raíz como respaldo para desarrollo local.
-Nunca copies `service_role` ni claves secretas al proyecto Expo.
-=======
-Start Expo in another terminal to generate a QR code for Expo Go:
+En otra terminal, configura `mobile/.env.local` según `mobile/.env.example`, instala e inicia Expo:
 
 ```powershell
 cd mobile
-npm start -- --tunnel
+npm install
+npm start
 ```
 
-The mobile prestart script updates `EXPO_PUBLIC_API_URL` with the current LAN
-address. Review both module READMEs for Supabase setup, validation commands,
-and operational details.
+Expo mostrará un QR para abrir la app con Expo Go. El script de inicio móvil actualiza `EXPO_PUBLIC_API_URL` para la red local; revisa el archivo local si el dispositivo no logra conectarse a la API.
 
-## Validation
->>>>>>> Stashed changes
+Nunca incluyas archivos `.env`, claves de servicio ni credenciales reales en Git. La clave `SUPABASE_SERVICE_ROLE_KEY` es exclusiva del backend.
 
-From `mobile/`:
+## Base de datos
 
-<<<<<<< Updated upstream
-`GET /health`, `POST /auth/register` y `POST /auth/login` son públicos. Las
-demás rutas requieren `Authorization: Bearer <access_token>`.
+Ejecuta las migraciones en el orden indicado en [`mobile/docs/supabase/README.md`](mobile/docs/supabase/README.md). Para una base existente que aún no admite el estado `CANCELADO`, aplica también `004_estado_cancelado.sql`. No es necesario aplicar esa migración adicional a una base nueva creada con el esquema inicial actualizado.
 
-| Ruta | Operaciones implementadas |
-| --- | --- |
-| `/auth/logout` | `POST` para cerrar sesión en el cliente. |
-| `/sync` | `POST` para procesar hasta 50 operaciones locales de trabajos o evidencias. |
-| `/evidencias/upload` | `POST` multipart para subir una imagen al bucket privado. |
-| `/tecnicos` | `GET`, `POST`, `GET /:id`, `PATCH /:id`, `DELETE /:id` (baja lógica del perfil permitido por RLS). |
-| `/clientes` | `GET`, `POST`, `GET /:id`, `PATCH /:id`, `DELETE /:id`. |
-| `/ordenes` | `GET`, `POST`, `GET /:id`, `PATCH /:id`, `DELETE /:id`. |
+## Validación
 
-La API valida la sesión con Supabase, crea un cliente por solicitud con el
-token Bearer y deja que las políticas RLS apliquen sobre PostgreSQL y Storage.
+Ejecuta cada comando desde su módulo:
 
-## Flujo de prueba
-
-```text
-Registro -> Confirmacion de correo -> Inicio de sesion
-    -> Trabajo asignado -> Marcar llegada
-    -> Foto antes -> Foto despues
-```
-
-El registro de llegada y las fotografias se guardan primero en SQLite. El
-tecnico no debe quedar bloqueado por una perdida de conectividad.
-
-## Sincronización
-
-SQLite es la fuente de lectura inmediata del técnico. Al marcar llegada,
-guardar una nota, evidencia, firma o finalización, la app actualiza primero la
-base local y encola una operación. Al enfocar las pantallas de trabajos y al
-usar el botón de sincronización, intenta enviar la cola a la API; las fotos
-locales se suben antes al bucket privado y luego se registra su ruta.
-
-Un fallo de red no bloquea esas acciones locales. La cola aún no tiene un
-planificador en segundo plano ni pruebas automáticas de reintentos/conflictos.
-
-## Validación y pruebas
-
-```bash
-=======
 ```powershell
->>>>>>> Stashed changes
-npx tsc --noEmit
+# mobile/
+npm test
 npm run lint
+npx tsc --noEmit
+npx expo install --check
 npx expo export --platform android
-```
 
-<<<<<<< Updated upstream
-Tambien se recomienda probar el flujo principal con el dispositivo en modo
-avion despues de haber cargado los datos locales.
-
-No hay suite de pruebas automatizadas configurada actualmente. La validación
-manual con Supabase y en un dispositivo físico sigue siendo necesaria para los
-flujos de cámara, sincronización y autenticación.
-
-## Estructura
-
-```text
-app/
-  (auth)/             Pantallas de registro e inicio de sesion
-  (tecnico)/          Hoy, historial y cuenta
-  trabajo/[id]/       Flujo de un trabajo
-components/           Componentes visuales reutilizables
-constants/            Estados y etiquetas del dominio
-hooks/                Hooks globales activos
-src/
-  api/                Cliente Supabase y servicio de autenticacion
-  data/               SQLite, repositorios y datos locales
-  session/            Sesion y proteccion de rutas
-docs/
-  adr/                Decisiones arquitectonicas
-  supabase/           Esquema SQL y guia de base de datos
-assets/               Iconos y recursos de la aplicacion
-```
-
-## Arquitectura
-
-```text
-Expo Mobile
-  |-- HTTP API -----------> Backend Express
-  |                            |
-  |                            `--> Supabase Auth, PostgreSQL, Storage
-  |-- SQLite local ------> Cola de sincronizacion -> Backend
-  `-- RouteGuard --------> Rutas protegidas del tecnico
-```
-
-La app solo usa Supabase directamente para conservar/restaurar la sesión local
-con el token recibido por el backend. Las operaciones de negocio pasan por la
-API HTTP.
-
-## Estado del proyecto
-
-Implementado y validado por compilación/arranque:
-
-- Autenticacion mediante backend HTTP y Supabase Auth.
-- Proteccion y restauracion de sesion.
-- Esquema PostgreSQL con RLS.
-- Persistencia local con SQLite.
-- Lectura de trabajos desde SQLite y backend.
-- Registro local de llegada.
-- Captura local de fotos.
-- CRUD de clientes y órdenes desde la app.
-- Subida diferida de evidencias mediante Storage.
-
-Pendiente de validación manual con Supabase y dispositivo:
-
-- CRUD administrativo real de técnicos: crear un técnico requiere crear
-  también su usuario de Supabase Auth y debe resolverse con un flujo admin
-  protegido en backend, nunca con `service_role` en Expo.
-- Grabación de audio y transcripción.
-- Validación manual de la captura de firma SVG en dispositivo y de su envío al
-  backend.
-- Pruebas automatizadas de transiciones y RLS.
-=======
-From `backend/`:
-
-```powershell
+# backend/
+npm test
 npm run typecheck
 ```
->>>>>>> Stashed changes
+
+## Resumen de los últimos cambios
+
+### Interfaz y navegación
+
+- Se restauró la visibilidad de las acciones del menú de Gestión; las opciones se renderizan al abrir el menú y usan botones con área de toque adecuada.
+- Se revisaron los botones de inicio y cierre de sesión, formularios, CRUD y navegación.
+- Se centralizaron colores y estilos en los tokens visuales y se ajustaron alertas, encabezados, selectores, indicadores de sincronización y pantallas administrativas para mantener contraste y estados claros.
+- El checklist registra áreas táctiles mínimas de 48 pt y contraste de texto mínimo de 4.5:1. La revisión visual en dispositivos Android e iOS todavía está pendiente.
+
+### Flujo del trabajo
+
+- Se incorporó una máquina de estados con transiciones y guardas para llegada, finalización, cierre y cancelación.
+- Se añadió el paso «Voy en camino»; la llegada ahora exige que la orden esté `EN_CAMINO`.
+- Los cambios de estado locales se validan y encolan en una transacción SQLite.
+- La firma manuscrita se captura como SVG y se conserva como evidencia local.
+- `CANCELADO` está contemplado en el esquema inicial, la migración incremental, el tipo móvil y la validación del backend.
+- Las transiciones inválidas se rechazan en el backend tanto al sincronizar (`POST /sync`) como al actualizar una orden (`PATCH /ordenes/:id`). Las escrituras comparan el estado leído para evitar aplicar un cambio sobre una orden que cambió concurrentemente. Las órdenes nuevas comienzan en `ASIGNADO`.
+
+### Pruebas y estado de entrega
+
+- `mobile/tests/estadoTrabajo.test.mjs`: 6 pruebas de transiciones y guardas del flujo móvil.
+- `backend/tests/trabajo-state.test.mjs`: 3 pruebas de transiciones válidas, inválidas e idempotencia.
+- Validaciones ejecutadas en la última revisión: ambas suites, ESLint, TypeScript móvil y backend, verificación de dependencias Expo y exportación Android.
+- Expo Go se inició en el puerto 8081 para comprobar el arranque de Metro.
+- Falta validar en un teléfono o emulador el flujo visual y offline, ejecutar la transición inválida contra el backend conectado a Supabase y aplicar la migración `004` en la base de demostración existente.
+
+El commit de auditoría que contiene esos cambios es `f0bebb0` (`fix: validate UI, functionality and October delivery requirements`). El estado del equipo y las tareas pendientes se mantienen en los checklists vinculados arriba.
