@@ -54,7 +54,7 @@ export default function Select<T extends FieldValues>({
             {label}
           </Text>
           <Text style={{ color: DESIGN.colors.textSecondary, fontSize: 12 }}>
-            Selecciona una opción
+            {value ? "Opción elegida (toca otra para cambiarla)" : "Toca una opción para elegirla"}
           </Text>
           {options.length === 0 ? (
             <Text className="rounded-lg p-3" style={{ backgroundColor: DESIGN.status.trabajo.EN_SITIO.background, color: DESIGN.status.trabajo.EN_SITIO.foreground }}>
@@ -73,10 +73,13 @@ export default function Select<T extends FieldValues>({
                     className="w-full"
                     style={({ pressed }) => [
                       {
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 12,
                         backgroundColor: selected ? DESIGN.colors.selected : DESIGN.colors.surface,
                         borderColor: selected ? DESIGN.colors.brand : DESIGN.colors.border,
-                        borderWidth: 1,
-                        borderBottomWidth: 3,
+                        borderWidth: selected ? 2 : 1,
+                        borderBottomWidth: selected ? 4 : 3,
                         borderBottomColor: selected
                           ? DESIGN.colors.brandPressed
                           : DESIGN.colors.borderSubtle,
@@ -90,7 +93,40 @@ export default function Select<T extends FieldValues>({
                       pressed ? { opacity: 0.86, elevation: 1 } : undefined,
                     ]}
                   >
-                    <Text style={{ color: selected ? DESIGN.colors.brand : DESIGN.colors.text, fontSize: 15, fontWeight: "600" }}>
+                    {/* Indicador tipo radio: anillo exterior + punto interior
+                        cuando está seleccionado, para que la selección sea
+                        inmediata al ojo aunque solo el color de fondo cambie. */}
+                    <View
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: 11,
+                        borderWidth: 2,
+                        borderColor: selected ? DESIGN.colors.brand : DESIGN.colors.border,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: DESIGN.colors.surface,
+                      }}
+                    >
+                      {selected ? (
+                        <View
+                          style={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: 6,
+                            backgroundColor: DESIGN.colors.brand,
+                          }}
+                        />
+                      ) : null}
+                    </View>
+                    <Text
+                      style={{
+                        flex: 1,
+                        color: selected ? DESIGN.colors.brand : DESIGN.colors.text,
+                        fontSize: 15,
+                        fontWeight: selected ? "700" : "600",
+                      }}
+                    >
                       {option.label}
                     </Text>
                   </Pressable>

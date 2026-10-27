@@ -57,7 +57,8 @@ export const definitions: Record<EntityName, { title: string; fields: FieldDef[]
   ordenes: {
     title: "Órdenes de trabajo",
     fields: [
-      { key: "cliente_id", label: "ID del cliente", required: true },
+      { key: "cliente_id", label: "Cliente", required: true },
+      { key: "tecnico_id", label: "Técnico", required: true },
       { key: "descripcion", label: "Descripción", required: true, multiline: true, maxLength: 1000 },
       { key: "direccion", label: "Dirección", maxLength: 240 },
       { key: "observaciones", label: "Observaciones", multiline: true, maxLength: 2000 },

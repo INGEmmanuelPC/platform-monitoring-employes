@@ -34,6 +34,7 @@ export function useEntityForm(entity: EntityName, edit: boolean) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [clients, setClients] = useState<EntityRecord[]>([]);
+  const [technicians, setTechnicians] = useState<EntityRecord[]>([]);
   const [loading, setLoading] = useState(edit && Boolean(id));
   const { showAlert } = useAppAlert();
 
@@ -54,6 +55,9 @@ export function useEntityForm(entity: EntityName, edit: boolean) {
     listEntities("clientes", "")
       .then(setClients)
       .catch((loadError) => setError(loadError instanceof Error ? loadError.message : "No se pudieron cargar los clientes."));
+    listEntities("tecnicos", "")
+      .then(setTechnicians)
+      .catch((loadError) => setError(loadError instanceof Error ? loadError.message : "No se pudieron cargar los técnicos."));
   }, [entity]);
 
   useEffect(() => {
@@ -100,5 +104,5 @@ export function useEntityForm(entity: EntityName, edit: boolean) {
     }
   });
 
-  return { fields, control, clients, error, loading, isSubmitting, submit };
+  return { fields, control, clients, technicians, error, loading, isSubmitting, submit };
 }
