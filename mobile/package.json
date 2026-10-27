@@ -10,7 +10,7 @@
     "ios": "node scripts/ensure-port-8081.js && expo start --ios --port 8081",
     "web": "node scripts/ensure-port-8081.js && expo start --web --port 8081",
     "lint": "expo lint",
-    "test": "node --test tests/estadoTrabajo.test.mjs"
+    "test": "node --test tests/estadoTrabajo.test.mjs tests/auth-errors.test.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/archivo": "^0.4.2",
