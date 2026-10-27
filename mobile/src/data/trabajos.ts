@@ -118,27 +118,14 @@ export async function guardarNota(database: SQLiteDatabase, trabajoId: string, c
   });
 }
 
-export async function guardarFirma(database: SQLiteDatabase, trabajoId: string, trazos: string) {
+export async function finalizarTrabajo(
+  database: SQLiteDatabase,
+  tecnicoId: string,
+  trabajoId: string,
+  firmaSvg: string,
+) {
   const now = new Date().toISOString();
   const evidenciaId = `FIRMA-${Date.now()}`;
-  await database.withTransactionAsync(async () => {
-    await database.runAsync(
-      `INSERT INTO evidencias (id, trabajo_id, tipo, contenido, captured_at, created_at)
-       VALUES (?, ?, 'FIRMA', ?, ?, ?)`, evidenciaId, trabajoId, trazos, now, now,
-    );
-    await database.runAsync(
-      `UPDATE trabajos SET sync = 'EN_COLA', updated_at = ? WHERE id = ?`, now, trabajoId,
-    );
-    await database.runAsync(
-      `INSERT INTO sync_queue (entity, entity_id, operation, payload, created_at)
-       VALUES ('evidencias', ?, 'INSERT', ?, ?)`, evidenciaId,
-      JSON.stringify({ trabajo_id: trabajoId, tipo: "FIRMA", contenido: trazos }), now,
-    );
-  });
-}
-
-export async function finalizarTrabajo(database: SQLiteDatabase, tecnicoId: string, trabajoId: string) {
-  const now = new Date().toISOString();
   await database.withTransactionAsync(async () => {
     const trabajo = await database.getFirstAsync<Pick<TrabajoLocal, "estado">>(
       "SELECT estado FROM trabajos WHERE id = ? AND tecnico_id = ?",
@@ -155,9 +142,27 @@ export async function finalizarTrabajo(database: SQLiteDatabase, tecnicoId: stri
       trabajoId,
     );
     const nuevoEstado = transicionarTrabajo(trabajo.estado, "completar", {
-      tieneFirma: Boolean(evidencias?.tieneFirma),
+      tieneFirma: Boolean(firmaSvg.trim()) || Boolean(evidencias?.tieneFirma),
       tieneFoto: Boolean(evidencias?.tieneFoto),
     });
+    if (firmaSvg.trim()) {
+      await database.runAsync(
+        `INSERT INTO evidencias (id, trabajo_id, tipo, contenido, captured_at, created_at)
+         VALUES (?, ?, 'FIRMA', ?, ?, ?)`,
+        evidenciaId,
+        trabajoId,
+        firmaSvg,
+        now,
+        now,
+      );
+      await database.runAsync(
+        `INSERT INTO sync_queue (entity, entity_id, operation, payload, created_at)
+         VALUES ('evidencias', ?, 'INSERT', ?, ?)`,
+        evidenciaId,
+        JSON.stringify({ trabajo_id: trabajoId, tipo: "FIRMA", contenido: firmaSvg }),
+        now,
+      );
+    }
     const updated = await database.runAsync(
       `UPDATE trabajos SET estado = ?, sync = 'EN_COLA', hora_salida = ?, updated_at = ?
        WHERE id = ? AND tecnico_id = ? AND estado = ?`,

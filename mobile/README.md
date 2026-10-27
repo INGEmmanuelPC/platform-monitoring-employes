@@ -13,7 +13,7 @@ cuando la conectividad es intermitente.
 - Refresco de trabajos desde Supabase cuando hay conectividad.
 - Registro local de llegada con hora y cola de sincronizacion.
 - Captura local de evidencias fotográficas antes y después, con subida diferida.
-- Notas de servicio y captura local de trazos de firma SVG.
+- Notas de servicio y captura de firmas como documentos SVG en SQLite.
 - CRUD autenticado de técnicos, clientes y órdenes de trabajo.
 - Políticas RLS para proteger perfiles, trabajos, clientes y evidencias.
 
@@ -105,8 +105,10 @@ agregar el preset heredado `nativewind/babel`.
   `docs/supabase/001_schema_inicial.sql`.
 4. Ejecuta `docs/supabase/002_crud_backend.sql` para habilitar los tres CRUD,
   las relaciones de clientes y el bucket privado de evidencias.
-5. Configura la confirmacion de correo segun el entorno.
-6. Crea un usuario desde la aplicacion o desde **Authentication > Users**.
+5. Si el proyecto ya tenía el esquema anterior, ejecuta
+  `docs/supabase/004_estado_cancelado.sql` para permitir `CANCELADO`.
+6. Configura la confirmacion de correo segun el entorno.
+7. Crea un usuario desde la aplicacion o desde **Authentication > Users**.
 
 El esquema crea las tablas `profiles`, `trabajos`, `evidencias` y `clientes`,
 relacionadas con `auth.users`. También crea triggers, índices, un bucket privado
@@ -169,16 +171,22 @@ where email = 'tu-correo@ejemplo.com';
 
 ## Ejecutar
 
-Inicia el servidor de desarrollo:
+Desde la raíz del repositorio, en la primera terminal inicia el backend.
+Escucha en todas las interfaces de red (`0.0.0.0`) para aceptar conexiones
+desde un celular en la misma Wi-Fi:
 
-```bash
-npx expo start
+```powershell
+Set-Location .\backend
+npm run dev
 ```
 
-Para limpiar la cache:
+En otra terminal, también desde la raíz, sincroniza la IP LAN en `.env.local` y
+arranca Expo limpiando la caché:
 
-```bash
-npx expo start -c
+```powershell
+Set-Location .\mobile
+npm run sync-ip
+npx expo start --clear
 ```
 
 Opciones de prueba:
@@ -186,6 +194,9 @@ Opciones de prueba:
 - Presiona `a` para abrir en un emulador Android configurado.
 - Escanea el QR desde Expo Go en un dispositivo movil.
 - Usa `npx expo start --tunnel` si la red local no permite conexiones LAN.
+- `npm start -- --clear` también sincroniza automáticamente la IP LAN antes
+  de iniciar Expo; en un celular físico, `EXPO_PUBLIC_API_URL` debe apuntar a
+  `http://<IP-LAN-del-computador>:3000`, nunca a `localhost`.
 
 Despues de cambiar `.env.local`, reinicia Expo para que las variables se
 carguen nuevamente.
@@ -250,20 +261,23 @@ token Bearer y deja que las políticas RLS apliquen sobre PostgreSQL y Storage.
 
 ```text
 Registro -> Confirmacion de correo -> Inicio de sesion
-    -> Trabajo asignado -> Marcar llegada
-    -> Foto antes -> Foto despues
+    -> Trabajo ASIGNADO -> Voy en camino -> Marcar llegada
+    -> Foto -> Nota -> Firma SVG -> Trabajo COMPLETADO
 ```
 
-El registro de llegada y las fotografias se guardan primero en SQLite. El
-tecnico no debe quedar bloqueado por una perdida de conectividad.
+La llegada y las evidencias se guardan primero en SQLite. La firma SVG, el
+cambio a `COMPLETADO` y sus elementos de sincronización se escriben en una sola
+transacción, después de validar las guardas de la máquina de estados. El técnico
+no debe quedar bloqueado por una pérdida de conectividad.
 
 ## Sincronización
 
-SQLite es la fuente de lectura inmediata del técnico. Al marcar llegada,
-guardar una nota, evidencia, firma o finalización, la app actualiza primero la
-base local y encola una operación. Al enfocar las pantallas de trabajos y al
-usar el botón de sincronización, intenta enviar la cola a la API; las fotos
-locales se suben antes al bucket privado y luego se registra su ruta.
+SQLite es la fuente de lectura inmediata del técnico. Al marcar que va en
+camino o llegada, guardar una nota o evidencia, o finalizar un trabajo, la app
+actualiza primero la base local y encola operaciones. Al enfocar las pantallas
+de trabajos y al usar el botón de sincronización, intenta enviar la cola a la
+API; las fotos locales se suben antes al bucket privado y luego se registra su
+ruta.
 
 Un fallo de red no bloquea esas acciones locales. La cola aún no tiene un
 planificador en segundo plano ni pruebas automáticas de reintentos/conflictos.
@@ -274,6 +288,7 @@ planificador en segundo plano ni pruebas automáticas de reintentos/conflictos.
 # Ejecutar desde mobile/
 npx tsc --noEmit
 npm run lint
+npm test
 npx expo export --platform android
 
 # Ejecutar desde backend/ en otra terminal
@@ -283,12 +298,11 @@ npm run typecheck
 Cada módulo revisa lo suyo con su propia configuración de TypeScript. Consulta
 `../backend/README.md` para la configuración del servidor.
 
-Tambien se recomienda probar el flujo principal con el dispositivo en modo
-avion despues de haber cargado los datos locales.
-
-No hay suite de pruebas automatizadas configurada actualmente. La validación
-manual con Supabase y en un dispositivo físico sigue siendo necesaria para los
-flujos de cámara, sincronización y autenticación.
+La suite `node:test` cubre las transiciones válidas e inválidas de la máquina de
+estados y el mapeo de errores de autenticación. También se recomienda probar el
+flujo principal con el dispositivo en modo avión después de haber cargado los
+datos locales. La validación manual con Supabase y en un dispositivo físico
+sigue siendo necesaria para los flujos de cámara, sincronización y autenticación.
 
 ## Estructura
 

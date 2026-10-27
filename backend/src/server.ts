@@ -479,6 +479,6 @@ app.use((error: unknown, _request: Request, response: Response, _next: NextFunct
   response.status(500).json({ error: rawMessage });
 });
 
-app.listen(config.port, () => {
-  console.log(`Backend escuchando en http://localhost:${config.port}`);
+app.listen(config.port, "0.0.0.0", () => {
+  console.log(`Backend escuchando en http://0.0.0.0:${config.port}`);
 });

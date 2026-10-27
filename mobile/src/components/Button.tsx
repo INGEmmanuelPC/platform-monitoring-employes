@@ -52,17 +52,24 @@ export function Button({
   const scale = useRef(new Animated.Value(1)).current;
   const unavailable = disabled || loading;
   const textColor = variant === "secondary" ? DESIGN.colors.brand : DESIGN.colors.surface;
-  const loadingColor =
-    unavailable && variant !== "secondary"
-      ? DESIGN.colors.disabledText
-      : textColor;
+  const loadingColor = unavailable ? DESIGN.colors.disabledText : textColor;
+  const pressedStyle: ViewStyle | undefined = unavailable
+    ? undefined
+    : variant === "secondary"
+      ? { backgroundColor: DESIGN.colors.selected }
+      : variant === "danger"
+        ? { backgroundColor: DESIGN.colors.dangerPressed }
+        : { backgroundColor: DESIGN.colors.brandPressed };
 
   const animateTo = (value: number) => {
     Animated.spring(scale, { toValue: value, useNativeDriver: true, speed: 24, bounciness: 4 }).start();
   };
 
   return (
-    <Animated.View style={{ transform: [{ scale }] }}>
+    <Animated.View
+      className={className}
+      style={{ width: "100%", transform: [{ scale }] }}
+    >
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
@@ -75,15 +82,20 @@ export function Button({
         }}
         onPressOut={() => animateTo(1)}
         disabled={unavailable}
-        className={`min-h-12 flex-row items-center justify-center gap-2 rounded-xl px-4 py-3 ${className ?? ""}`}
         style={({ pressed }) => [
           {
+            width: "100%",
             minHeight: MIN_TOUCH_TARGET + 4,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            columnGap: 8,
             borderRadius: DESIGN.radius.control,
             borderWidth: 1,
             borderBottomWidth: 4,
             paddingHorizontal: 16,
             paddingVertical: 12,
+            opacity: 1,
             ...RAISED_SURFACE,
           },
           VARIANT_STYLES[variant],
@@ -96,7 +108,7 @@ export function Button({
                 shadowOpacity: 0,
               }
             : pressed
-              ? { opacity: 0.92, elevation: 1 }
+              ? { ...pressedStyle, elevation: 1 }
               : undefined,
         ]}
       >

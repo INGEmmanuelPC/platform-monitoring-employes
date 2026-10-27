@@ -43,7 +43,7 @@ Estilo elegido: **Skeuomorfismo**. La elevación y los bordes táctiles hacen qu
 - [x] Hacer que `src/data/trabajos.ts` llame a la máquina **antes** de escribir en SQLite (dentro de la misma `withTransactionAsync`).
 - [x] Agregar `CANCELADO` al tipo, al CHECK de Supabase y al enum de Zod del backend.
 - [x] Botón "Voy en camino" (`marcarEnCamino()` + `useWorkDeparture`) como primer paso del flujo; `marcarLlegada()` exige `EN_CAMINO`.
-- [x] Lienzo de firma real con `react-native-svg`; los trazos se guardan como evidencia local en SQLite. El flujo aún requiere prueba en dispositivo.
+- [x] Lienzo de firma real con `react-native-svg`; el documento SVG se guarda en SQLite en la misma transacción que valida y completa el trabajo. El flujo aún requiere prueba en dispositivo.
 - [x] Configurar runner `node:test` sin dependencias nuevas y probar transiciones y guardas con `npm test`.
 
 ### Fase 2 · Ubicación y administración mínima (3 – 16 nov)

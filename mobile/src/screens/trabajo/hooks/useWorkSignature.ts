@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 
-import { finalizarTrabajo, guardarFirma } from "@/src/data/trabajos";
+import { finalizarTrabajo } from "@/src/data/trabajos";
 import { useAuth } from "@/src/session/AuthProvider";
 
 import type { FirmaTouchEvent } from "../components/FirmaPad";
@@ -18,7 +18,9 @@ export function useWorkSignature() {
 
   const startStroke = (event: FirmaTouchEvent) => {
     const { locationX, locationY } = event.nativeEvent;
-    setSignaturePath(`M ${locationX.toFixed(1)} ${locationY.toFixed(1)}`);
+    setSignaturePath(
+      (current) => `${current} M ${locationX.toFixed(1)} ${locationY.toFixed(1)}`.trim(),
+    );
   };
 
   const continueStroke = (event: FirmaTouchEvent) => {
@@ -39,8 +41,8 @@ export function useWorkSignature() {
     setSaving(true);
     setError(null);
     try {
-      await guardarFirma(database, id, signaturePath);
-      await finalizarTrabajo(database, session.user.id, id);
+      const firmaSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="260" viewBox="0 0 360 260"><path d="${signaturePath}" fill="none" stroke="#17313F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      await finalizarTrabajo(database, session.user.id, id, firmaSvg);
       router.replace("/");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo finalizar el trabajo en el dispositivo.");
