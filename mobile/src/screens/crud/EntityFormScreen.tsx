@@ -10,7 +10,7 @@ import { useEntityForm } from "./hooks/useEntityForm";
 
 export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: boolean }) {
   const definition = definitions[entity];
-  const { fields, control, clients, error, loading, isSubmitting, submit } = useEntityForm(entity, edit);
+  const { fields, control, clients, technicians, error, loading, isSubmitting, submit } = useEntityForm(entity, edit);
 
   return (
     <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : "height"}>
@@ -30,7 +30,7 @@ export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: b
             <Text style={{ color: DESIGN.colors.textSecondary }}>Cargando registro...</Text>
           </View>
         ) : (
-          <EntityFormFields entity={entity} fields={fields} control={control} clients={clients} />
+          <EntityFormFields entity={entity} fields={fields} control={control} clients={clients} technicians={technicians} />
         )}
 
         {error ? (

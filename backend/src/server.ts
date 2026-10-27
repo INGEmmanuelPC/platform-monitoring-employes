@@ -324,6 +324,9 @@ function crudRoutes(path: string, table: "clientes" | "trabajos", schema: z.ZodO
     try {
       const search = typeof request.query.search === "string" ? request.query.search : "";
       let query = response.locals.supabase.from(table).select("*").order("created_at", { ascending: false });
+      // Los clientes INACTIVO (soft delete) no se muestran en el listado: siguen
+      // en la base para no perder el historial de órdenes que los referencian.
+      if (table === "clientes") query = query.eq("estado", "ACTIVO");
       if (search) query = query.ilike(table === "clientes" ? "nombre" : "descripcion", `%${search}%`);
       const { data, error } = await query;
       if (error) throw error;
@@ -409,6 +412,26 @@ function crudRoutes(path: string, table: "clientes" | "trabajos", schema: z.ZodO
 
   app.delete(`${path}/:id`, async (request, response, next) => {
     try {
+      // Clientes: soft delete (estado = INACTIVO). No se borran para preservar
+      // la integridad referencial con las órdenes históricas.
+      // Órdenes (trabajos): hard delete; el admin elimina una orden mal creada
+      // y queda fuera del historial.
+      if (table === "clientes") {
+        const { data, error } = await response.locals.supabase
+          .from("clientes")
+          .update({ estado: "INACTIVO" })
+          .eq("id", request.params.id)
+          .eq("estado", "ACTIVO")
+          .select("id")
+          .maybeSingle();
+        if (error) throw error;
+        if (!data) {
+          response.status(404).json({ error: "El cliente no existe o ya estaba desactivado." });
+          return;
+        }
+        response.json({ deleted: true, id: data.id });
+        return;
+      }
       const { data, error } = await response.locals.supabase
         .from(table)
         .delete()
