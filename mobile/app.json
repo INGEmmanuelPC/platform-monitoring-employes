@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "introduction-movil-subject",
-    "slug": "introduction-movil-subject",
+    "name": "Cuadrilla",
+    "slug": "cuadrilla-tecnicos-campo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -44,6 +44,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "44072c9d-02b0-4991-b8ec-a77e290e064a"
+      }
+    },
+    "owner": "icxrvajals-team"
   }
 }

@@ -129,7 +129,7 @@ que solo puede contener variables con prefijo `EXPO_PUBLIC_`:
 ```env
 EXPO_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=tu-clave-publica
-EXPO_PUBLIC_API_URL=http://localhost:3000
+EXPO_PUBLIC_API_URL=https://platform-monitoring-employes.onrender.com
 ```
 
 Puedes obtenerlos en **Project Settings > API**:
@@ -137,9 +137,11 @@ Puedes obtenerlos en **Project Settings > API**:
 - **Project URL** -> `EXPO_PUBLIC_SUPABASE_URL`
 - **Publishable key** o antigua **anon key** -> `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 
-`EXPO_PUBLIC_API_URL` debe apuntar al servidor backend. En un celular físico no
-uses `localhost`: reemplázalo por la IP LAN del computador que ejecuta el
-backend, por ejemplo `http://192.168.1.20:3000`.
+`EXPO_PUBLIC_API_URL` debe apuntar al backend. Para el APK y pruebas desde redes
+externas, usa la URL HTTPS pública de Render:
+`https://platform-monitoring-employes.onrender.com`. Para desarrollo con un
+backend local, puede apuntar a `http://<IP-LAN-del-computador>:3000`; no uses
+`localhost` en un teléfono físico.
 
 Nunca uses `service_role`, claves secretas, contraseñas ni tokens privados en
 la aplicación móvil. `.env.local` está excluido de Git.
@@ -180,12 +182,10 @@ Set-Location .\backend
 npm run dev
 ```
 
-En otra terminal, también desde la raíz, sincroniza la IP LAN en `.env.local` y
-arranca Expo limpiando la caché:
+En otra terminal, también desde la raíz, arranca Expo limpiando la caché:
 
 ```powershell
 Set-Location .\mobile
-npm run sync-ip
 npx expo start --clear
 ```
 
@@ -194,9 +194,9 @@ Opciones de prueba:
 - Presiona `a` para abrir en un emulador Android configurado.
 - Escanea el QR desde Expo Go en un dispositivo movil.
 - Usa `npx expo start --tunnel` si la red local no permite conexiones LAN.
-- `npm start -- --clear` también sincroniza automáticamente la IP LAN antes
-  de iniciar Expo; en un celular físico, `EXPO_PUBLIC_API_URL` debe apuntar a
-  `http://<IP-LAN-del-computador>:3000`, nunca a `localhost`.
+- `npm start -- --clear` conserva una `EXPO_PUBLIC_API_URL` HTTPS configurada.
+  Para cambiar explícitamente a un backend local, ejecuta primero
+  `npm run sync-ip`; el script no reemplaza URLs HTTPS.
 
 Despues de cambiar `.env.local`, reinicia Expo para que las variables se
 carguen nuevamente.

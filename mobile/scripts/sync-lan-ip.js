@@ -43,16 +43,20 @@ function updateEnvFile(newUrl) {
   }
 
   const lines = fs.readFileSync(ENV_PATH, "utf8").split("\n");
-  let found = false;
-  let previousUrl = null;
+  const apiUrlLine = lines.find((line) => line.startsWith("EXPO_PUBLIC_API_URL="));
+  const previousUrl = apiUrlLine
+    ? apiUrlLine.slice("EXPO_PUBLIC_API_URL=".length).trim()
+    : null;
 
+  if (previousUrl && /^https:\/\//i.test(previousUrl)) {
+    return previousUrl;
+  }
+
+  let found = false;
   const updated = lines.map((line) => {
-    if (line.startsWith("EXPO_PUBLIC_API_URL=")) {
-      found = true;
-      previousUrl = line.slice("EXPO_PUBLIC_API_URL=".length);
-      return `EXPO_PUBLIC_API_URL=${newUrl}`;
-    }
-    return line;
+    if (!line.startsWith("EXPO_PUBLIC_API_URL=")) return line;
+    found = true;
+    return `EXPO_PUBLIC_API_URL=${newUrl}`;
   });
 
   if (!found) {
@@ -82,6 +86,11 @@ function main() {
   const ip = candidates[0].address;
   const newUrl = `http://${ip}:${BACKEND_PORT}`;
   const previousUrl = updateEnvFile(newUrl);
+
+  if (previousUrl && /^https:\/\//i.test(previousUrl)) {
+    console.log(`EXPO_PUBLIC_API_URL conserva el backend HTTPS configurado (${previousUrl}).`);
+    return;
+  }
 
   if (previousUrl === newUrl) {
     console.log(`EXPO_PUBLIC_API_URL ya estaba correcto (${newUrl}).`);
