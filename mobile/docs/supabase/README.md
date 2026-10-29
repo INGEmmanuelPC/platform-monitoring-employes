@@ -12,6 +12,7 @@
 8. Ejecuta `005_admin_gestiona_trabajos.sql` si tu instalación aún no la tiene.
 9. Antes de la demo, ejecuta `006_sync_atomico_y_cancelacion.sql` para instalar la cancelación con motivo y el RPC transaccional `sync_trabajos`.
 10. Ejecuta `007_storage_upsert_reintentos.sql` para permitir reintentos idempotentes de fotografías en la carpeta privada de cada técnico.
+11. Ejecuta `008_admin_ejecuta_trabajos.sql` si la cuenta administradora debe ejecutar trabajos desde Hoy. Esta migración conserva `tecnico_id`, permite al administrador leer y guardar evidencias bajo su sesión, y actualiza el RPC para aceptar las acciones de admin sin abrir el acceso del técnico a trabajos ajenos.
 
 Las migraciones crean:
 
@@ -26,6 +27,9 @@ autenticado según las relaciones de propiedad de perfiles, trabajos y clientes.
 La migración 006 hace que cada lote de sincronización se aplique dentro de una
 transacción PostgreSQL y agrega un trigger que también valida cambios directos
 de estado en la base; el backend nuevo requiere estas protecciones para `/sync`.
+La migración 008 es necesaria para que la nueva vista operativa de Hoy permita a
+un administrador ejecutar una orden y sincronizar sus evidencias sin cambiar el
+técnico históricamente asignado.
 
 ## Administrador inicial y técnicos
 

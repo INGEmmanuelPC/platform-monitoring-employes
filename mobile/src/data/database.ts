@@ -40,6 +40,7 @@ export async function initializeDatabase(database: SQLiteDatabase) {
       payload TEXT NOT NULL,
       attempts INTEGER NOT NULL DEFAULT 0,
       last_error TEXT,
+      actor_id TEXT,
       created_at TEXT NOT NULL
     );
 
@@ -57,4 +58,5 @@ export async function initializeDatabase(database: SQLiteDatabase) {
   try { await database.execAsync("ALTER TABLE trabajos ADD COLUMN hora_salida TEXT"); } catch { }
   try { await database.execAsync("ALTER TABLE trabajos ADD COLUMN observaciones TEXT NOT NULL DEFAULT ''"); } catch { }
   try { await database.execAsync("ALTER TABLE trabajos ADD COLUMN motivo_cancelacion TEXT"); } catch { }
+  try { await database.execAsync("ALTER TABLE sync_queue ADD COLUMN actor_id TEXT"); } catch { }
 }

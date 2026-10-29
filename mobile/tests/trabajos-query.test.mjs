@@ -16,7 +16,7 @@ const compiled = ts.transpileModule(source, {
   },
 }).outputText;
 const compiledUrl = `data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`;
-const { buildTrabajosListQuery, uniquePendingTrabajoMissingFromSnapshot } = await import(compiledUrl);
+const { buildTrabajosListQuery, buildTrabajoScopeFilter, buildSyncQueueActorFilter, uniquePendingTrabajoMissingFromSnapshot } = await import(compiledUrl);
 
 const todaySourcePath = fileURLToPath(new URL("../src/domain/trabajosHoy.ts", import.meta.url));
 const todaySource = readFileSync(todaySourcePath, "utf8");
@@ -40,6 +40,16 @@ test("el técnico consulta únicamente los trabajos de su asignación", () => {
   const { sql } = buildTrabajosListQuery("tecnico");
   assert.match(sql, /WHERE tecnico_id = \?/);
   assert.match(sql, /ORDER BY hora_programada IS NULL, hora_programada, created_at/);
+});
+
+test("Hoy abre los trabajos por id para admin sin quitar el filtro de asignación del técnico", () => {
+  assert.equal(buildTrabajoScopeFilter("admin"), "id = ?");
+  assert.equal(buildTrabajoScopeFilter("tecnico"), "tecnico_id = ? AND id = ?");
+});
+
+test("admin sincroniza solo sus operaciones y el técnico puede retomar la cola antigua sin actor", () => {
+  assert.equal(buildSyncQueueActorFilter("admin"), "actor_id = ?");
+  assert.equal(buildSyncQueueActorFilter("tecnico"), "actor_id = ? OR actor_id IS NULL");
 });
 
 test("solo identifica un pendiente local ausente sin adivinar entre varios", () => {

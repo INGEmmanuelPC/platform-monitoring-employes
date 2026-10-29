@@ -9,7 +9,7 @@ export function useWorkArrival() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const database = useSQLiteContext();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +22,7 @@ export function useWorkArrival() {
     setSaving(true);
     setError(null);
     try {
-      await marcarLlegada(database, session.user.id, id);
+      await marcarLlegada(database, session.user.id, id, profile?.role ?? "tecnico");
       router.replace({ pathname: "/trabajo/[id]/evidencia", params: { id } });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo guardar la llegada en el dispositivo.");

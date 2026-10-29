@@ -11,7 +11,7 @@ import type { Paso } from "../components/PasoLink";
 export function useWorkOrderFlow() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const database = useSQLiteContext();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const [trabajo, setTrabajo] = useState<TrabajoLocal | null>(null);
   const [evidenceTypes, setEvidenceTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +33,7 @@ export function useWorkOrderFlow() {
     }
     try {
       const [trabajoLocal, evidencias] = await Promise.all([
-        getTrabajo(database, technicianId, id),
+        getTrabajo(database, technicianId, id, profile?.role ?? "tecnico"),
         getEvidencias(database, id),
       ]);
       if (isActive()) {
@@ -45,7 +45,7 @@ export function useWorkOrderFlow() {
     } finally {
       if (isActive()) setLoading(false);
     }
-  }, [database, id, session?.user.id]);
+  }, [database, id, profile?.role, session?.user.id]);
 
   useEffect(() => {
     let active = true;

@@ -42,9 +42,9 @@ export function useTrabajos() {
       }
 
       let syncFailure: unknown;
-      if (profile?.role === "tecnico") {
+      if (profile?.role === "tecnico" || profile?.role === "admin") {
         try {
-          await processSyncQueue(database);
+          await processSyncQueue(database, authenticatedUserId, profile.role);
         } catch (syncError) {
           syncFailure = syncError;
         }

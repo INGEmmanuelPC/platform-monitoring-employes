@@ -28,6 +28,16 @@ export function buildTrabajosListQuery(role: TrabajoListRole) {
   return { sql };
 }
 
+export function buildTrabajoScopeFilter(role: TrabajoListRole) {
+  return role === "admin" ? "id = ?" : "tecnico_id = ? AND id = ?";
+}
+
+export function buildSyncQueueActorFilter(role: TrabajoListRole) {
+  return role === "tecnico"
+    ? "actor_id = ? OR actor_id IS NULL"
+    : "actor_id = ?";
+}
+
 export function uniquePendingTrabajoMissingFromSnapshot(
   cachedTrabajos: { id: string; sync: string }[],
   remoteIds: ReadonlySet<string>,

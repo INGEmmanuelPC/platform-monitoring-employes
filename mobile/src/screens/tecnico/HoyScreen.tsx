@@ -28,7 +28,7 @@ export default function HoyScreen() {
           <EmptyState message={isAdmin ? "No hay trabajos pendientes." : "No tienes trabajos asignados."} />
         ) : null}
         {!loading && pendientes.map((trabajo) => (
-          <TrabajoHoyCard key={trabajo.id} trabajo={trabajo} isAdmin={isAdmin} />
+          <TrabajoHoyCard key={trabajo.id} trabajo={trabajo} />
         ))}
       </View>
     </ScrollView>

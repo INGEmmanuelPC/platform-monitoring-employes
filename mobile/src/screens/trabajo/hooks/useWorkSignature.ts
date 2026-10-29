@@ -12,7 +12,7 @@ export function useWorkSignature() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const database = useSQLiteContext();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [signaturePath, setSignaturePath] = useState("");
@@ -43,7 +43,7 @@ export function useWorkSignature() {
     setSaving(true);
     setError(null);
     try {
-      await finalizarTrabajo(database, session.user.id, id, firmaSvg);
+      await finalizarTrabajo(database, session.user.id, id, firmaSvg, profile?.role ?? "tecnico");
       router.replace("/");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo finalizar el trabajo en el dispositivo.");

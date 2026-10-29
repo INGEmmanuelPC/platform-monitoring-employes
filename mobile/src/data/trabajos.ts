@@ -6,6 +6,8 @@ import { ApiRequestError } from "@/src/api/http";
 import { firmaSvgTieneTrazo, transicionarTrabajo } from "@/src/domain/estadoTrabajo";
 import {
   buildTrabajosListQuery,
+  buildTrabajoScopeFilter,
+  buildSyncQueueActorFilter,
   TRABAJO_COLUMNS,
   type TrabajoListRole,
   uniquePendingTrabajoMissingFromSnapshot,
@@ -24,16 +26,26 @@ export async function getTrabajos(
 
 export async function getTrabajo(
   database: SQLiteDatabase,
-  tecnicoId: string,
+  actorId: string,
   trabajoId: string,
+  role: TrabajoListRole = "tecnico",
 ) {
+  const ownership = buildTrabajoScopeFilter(role);
+  const values = role === "admin" ? [trabajoId] : [actorId, trabajoId];
   return database.getFirstAsync<TrabajoLocal>(
     `SELECT ${TRABAJO_COLUMNS}
      FROM trabajos
-     WHERE tecnico_id = ? AND id = ?`,
-    tecnicoId,
-    trabajoId,
+     WHERE ${ownership}`,
+    ...values,
   );
+}
+
+function workPredicate(role: TrabajoListRole) {
+  return role === "admin" ? "id = ?" : "id = ? AND tecnico_id = ?";
+}
+
+function workBindings(actorId: string, trabajoId: string, role: TrabajoListRole) {
+  return role === "admin" ? [trabajoId] : [trabajoId, actorId];
 }
 
 export async function getEvidencias(database: SQLiteDatabase, trabajoId: string) {
@@ -185,10 +197,21 @@ export async function refreshTrabajosFromServer(
   });
 }
 
-export async function guardarNota(database: SQLiteDatabase, trabajoId: string, contenido: string) {
+export async function guardarNota(
+  database: SQLiteDatabase,
+  trabajoId: string,
+  contenido: string,
+  actorId: string,
+  role: TrabajoListRole = "tecnico",
+) {
   const now = new Date().toISOString();
   const evidenciaId = `NOTA-${Date.now()}`;
   await database.withTransactionAsync(async () => {
+    const trabajo = await database.getFirstAsync<{ id: string }>(
+      `SELECT id FROM trabajos WHERE ${workPredicate(role)}`,
+      ...workBindings(actorId, trabajoId, role),
+    );
+    if (!trabajo) throw new Error("No se encontró el trabajo disponible para esta cuenta.");
     await database.runAsync(
       `INSERT INTO evidencias (id, trabajo_id, tipo, contenido, captured_at, created_at)
        VALUES (?, ?, 'NOTA', ?, ?, ?)`, evidenciaId, trabajoId, contenido, now, now,
@@ -197,26 +220,26 @@ export async function guardarNota(database: SQLiteDatabase, trabajoId: string, c
       `UPDATE trabajos SET sync = 'EN_COLA', updated_at = ? WHERE id = ?`, now, trabajoId,
     );
     await database.runAsync(
-      `INSERT INTO sync_queue (entity, entity_id, operation, payload, created_at)
-       VALUES ('evidencias', ?, 'INSERT', ?, ?)`, evidenciaId,
-      JSON.stringify({ trabajo_id: trabajoId, tipo: "NOTA", contenido }), now,
+      `INSERT INTO sync_queue (entity, entity_id, operation, payload, actor_id, created_at)
+       VALUES ('evidencias', ?, 'INSERT', ?, ?, ?)`, evidenciaId,
+      JSON.stringify({ trabajo_id: trabajoId, tipo: "NOTA", contenido }), actorId, now,
     );
   });
 }
 
 export async function finalizarTrabajo(
   database: SQLiteDatabase,
-  tecnicoId: string,
+  actorId: string,
   trabajoId: string,
   firmaSvg: string,
+  role: TrabajoListRole = "tecnico",
 ) {
   const now = new Date().toISOString();
   const evidenciaId = `FIRMA-${Date.now()}`;
   await database.withTransactionAsync(async () => {
     const trabajo = await database.getFirstAsync<Pick<TrabajoLocal, "estado">>(
-      "SELECT estado FROM trabajos WHERE id = ? AND tecnico_id = ?",
-      trabajoId,
-      tecnicoId,
+      `SELECT estado FROM trabajos WHERE ${workPredicate(role)}`,
+      ...workBindings(actorId, trabajoId, role),
     );
     if (!trabajo) throw new Error("No se encontró el trabajo de este técnico.");
 
@@ -242,62 +265,62 @@ export async function finalizarTrabajo(
         now,
       );
       await database.runAsync(
-        `INSERT INTO sync_queue (entity, entity_id, operation, payload, created_at)
-         VALUES ('evidencias', ?, 'INSERT', ?, ?)`,
+        `INSERT INTO sync_queue (entity, entity_id, operation, payload, actor_id, created_at)
+         VALUES ('evidencias', ?, 'INSERT', ?, ?, ?)`,
         evidenciaId,
         JSON.stringify({ trabajo_id: trabajoId, tipo: "FIRMA", contenido: firmaSvg }),
+        actorId,
         now,
       );
     }
     const updated = await database.runAsync(
       `UPDATE trabajos SET estado = ?, sync = 'EN_COLA', hora_salida = ?, updated_at = ?
-       WHERE id = ? AND tecnico_id = ? AND estado = ?`,
+       WHERE ${workPredicate(role)} AND estado = ?`,
       nuevoEstado,
       now,
       now,
-      trabajoId,
-      tecnicoId,
+      ...workBindings(actorId, trabajoId, role),
       trabajo.estado,
     );
     if (updated.changes !== 1) throw new Error("El trabajo cambió de estado. Vuelve a abrirlo e inténtalo de nuevo.");
     await database.runAsync(
-      `INSERT INTO sync_queue (entity, entity_id, operation, payload, created_at)
-       VALUES ('trabajos', ?, 'UPDATE', ?, ?)`, trabajoId,
-      JSON.stringify({ estado: nuevoEstado, hora_salida: now }), now,
+      `INSERT INTO sync_queue (entity, entity_id, operation, payload, actor_id, created_at)
+       VALUES ('trabajos', ?, 'UPDATE', ?, ?, ?)`, trabajoId,
+      JSON.stringify({ estado: nuevoEstado, hora_salida: now }), actorId, now,
     );
   });
 }
 
 export async function marcarEnCamino(
   database: SQLiteDatabase,
-  tecnicoId: string,
+  actorId: string,
   trabajoId: string,
+  role: TrabajoListRole = "tecnico",
 ) {
   const now = new Date().toISOString();
   await database.withTransactionAsync(async () => {
     const trabajo = await database.getFirstAsync<Pick<TrabajoLocal, "estado">>(
-      "SELECT estado FROM trabajos WHERE id = ? AND tecnico_id = ?",
-      trabajoId,
-      tecnicoId,
+      `SELECT estado FROM trabajos WHERE ${workPredicate(role)}`,
+      ...workBindings(actorId, trabajoId, role),
     );
     if (!trabajo) throw new Error("No se encontró el trabajo de este técnico.");
 
     const nuevoEstado = transicionarTrabajo(trabajo.estado, "marcarEnCamino");
     const updated = await database.runAsync(
       `UPDATE trabajos SET estado = ?, sync = 'EN_COLA', updated_at = ?
-       WHERE id = ? AND tecnico_id = ? AND estado = ?`,
+       WHERE ${workPredicate(role)} AND estado = ?`,
       nuevoEstado,
       now,
-      trabajoId,
-      tecnicoId,
+      ...workBindings(actorId, trabajoId, role),
       trabajo.estado,
     );
     if (updated.changes !== 1) throw new Error("El trabajo cambió de estado. Vuelve a abrirlo e inténtalo de nuevo.");
     await database.runAsync(
-      `INSERT INTO sync_queue (entity, entity_id, operation, payload, created_at)
-       VALUES ('trabajos', ?, 'UPDATE', ?, ?)`,
+      `INSERT INTO sync_queue (entity, entity_id, operation, payload, actor_id, created_at)
+       VALUES ('trabajos', ?, 'UPDATE', ?, ?, ?)`,
       trabajoId,
       JSON.stringify({ estado: nuevoEstado }),
+      actorId,
       now,
     );
   });
@@ -305,16 +328,16 @@ export async function marcarEnCamino(
 
 export async function marcarLlegada(
   database: SQLiteDatabase,
-  tecnicoId: string,
+  actorId: string,
   trabajoId: string,
+  role: TrabajoListRole = "tecnico",
 ) {
   const llegadaAt = new Date().toISOString();
 
   await database.withTransactionAsync(async () => {
     const trabajo = await database.getFirstAsync<Pick<TrabajoLocal, "estado">>(
-      "SELECT estado FROM trabajos WHERE id = ? AND tecnico_id = ?",
-      trabajoId,
-      tecnicoId,
+      `SELECT estado FROM trabajos WHERE ${workPredicate(role)}`,
+      ...workBindings(actorId, trabajoId, role),
     );
     if (!trabajo) throw new Error("No se encontró el trabajo de este técnico.");
 
@@ -322,22 +345,22 @@ export async function marcarLlegada(
     const updated = await database.runAsync(
       `UPDATE trabajos
        SET estado = ?, sync = 'EN_COLA', llegada_at = ?, updated_at = ?
-       WHERE id = ? AND tecnico_id = ? AND estado = ?`,
+       WHERE ${workPredicate(role)} AND estado = ?`,
       nuevoEstado,
       llegadaAt,
       llegadaAt,
-      trabajoId,
-      tecnicoId,
+      ...workBindings(actorId, trabajoId, role),
       trabajo.estado,
     );
     if (updated.changes !== 1) throw new Error("El trabajo cambió de estado. Vuelve a abrirlo e inténtalo de nuevo.");
     await database.runAsync(
-      `INSERT INTO sync_queue (entity, entity_id, operation, payload, created_at)
-       VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO sync_queue (entity, entity_id, operation, payload, actor_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
       "trabajos",
       trabajoId,
       "UPDATE",
       JSON.stringify({ estado: nuevoEstado, llegada_at: llegadaAt }),
+      actorId,
       llegadaAt,
     );
   });
@@ -345,37 +368,37 @@ export async function marcarLlegada(
 
 export async function cancelarTrabajo(
   database: SQLiteDatabase,
-  tecnicoId: string,
+  actorId: string,
   trabajoId: string,
   motivoCancelacion: string,
+  role: TrabajoListRole = "tecnico",
 ) {
   const motivo = motivoCancelacion.trim();
   const now = new Date().toISOString();
   await database.withTransactionAsync(async () => {
     const trabajo = await database.getFirstAsync<Pick<TrabajoLocal, "estado">>(
-      "SELECT estado FROM trabajos WHERE id = ? AND tecnico_id = ?",
-      trabajoId,
-      tecnicoId,
+      `SELECT estado FROM trabajos WHERE ${workPredicate(role)}`,
+      ...workBindings(actorId, trabajoId, role),
     );
     if (!trabajo) throw new Error("No se encontró el trabajo de este técnico.");
 
     const nuevoEstado = transicionarTrabajo(trabajo.estado, "cancelar", { motivoCancelacion: motivo });
     const updated = await database.runAsync(
       `UPDATE trabajos SET estado = ?, motivo_cancelacion = ?, sync = 'EN_COLA', updated_at = ?
-       WHERE id = ? AND tecnico_id = ? AND estado = ?`,
+       WHERE ${workPredicate(role)} AND estado = ?`,
       nuevoEstado,
       motivo,
       now,
-      trabajoId,
-      tecnicoId,
+      ...workBindings(actorId, trabajoId, role),
       trabajo.estado,
     );
     if (updated.changes !== 1) throw new Error("El trabajo cambió de estado. Vuelve a abrirlo e inténtalo de nuevo.");
     await database.runAsync(
-      `INSERT INTO sync_queue (entity, entity_id, operation, payload, created_at)
-       VALUES ('trabajos', ?, 'UPDATE', ?, ?)`,
+      `INSERT INTO sync_queue (entity, entity_id, operation, payload, actor_id, created_at)
+       VALUES ('trabajos', ?, 'UPDATE', ?, ?, ?)`,
       trabajoId,
       JSON.stringify({ estado: nuevoEstado, motivo_cancelacion: motivo }),
+      actorId,
       now,
     );
   });
@@ -386,11 +409,18 @@ export async function guardarEvidencia(
   trabajoId: string,
   tipo: "FOTO_ANTES" | "FOTO_DESPUES",
   storagePath: string,
+  actorId: string,
+  role: TrabajoListRole = "tecnico",
 ) {
   const now = new Date().toISOString();
   const evidenciaId = `${tipo}-${Date.now()}`;
 
   await database.withTransactionAsync(async () => {
+    const trabajo = await database.getFirstAsync<{ id: string }>(
+      `SELECT id FROM trabajos WHERE ${workPredicate(role)}`,
+      ...workBindings(actorId, trabajoId, role),
+    );
+    if (!trabajo) throw new Error("No se encontró el trabajo disponible para esta cuenta.");
     await database.runAsync(
       `INSERT INTO evidencias (
         id, trabajo_id, tipo, storage_path, captured_at, created_at
@@ -403,23 +433,24 @@ export async function guardarEvidencia(
       now,
     );
     await database.runAsync(
-      `UPDATE trabajos SET sync = 'EN_COLA', updated_at = ? WHERE id = ?`,
+      `UPDATE trabajos SET sync = 'EN_COLA', updated_at = ? WHERE ${workPredicate(role)}`,
       now,
-      trabajoId,
+      ...workBindings(actorId, trabajoId, role),
     );
     await database.runAsync(
-      `INSERT INTO sync_queue (entity, entity_id, operation, payload, created_at)
-       VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO sync_queue (entity, entity_id, operation, payload, actor_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
       "evidencias",
       evidenciaId,
       "INSERT",
       JSON.stringify({ trabajo_id: trabajoId, tipo, storage_path: storagePath }),
+      actorId,
       now,
     );
   });
 }
 
-export async function getPendingSync(database: SQLiteDatabase) {
+export async function getPendingSync(database: SQLiteDatabase, actorId: string, role: TrabajoListRole) {
   const rows = await database.getAllAsync<{
     id: number;
     entity: "trabajos" | "evidencias";
@@ -428,13 +459,16 @@ export async function getPendingSync(database: SQLiteDatabase) {
     payload: string;
   }>(
     `SELECT id, entity, entity_id, operation, payload
-     FROM sync_queue ORDER BY created_at, id LIMIT 50`,
+     FROM sync_queue
+     WHERE ${buildSyncQueueActorFilter(role)}
+     ORDER BY created_at, id LIMIT 50`,
+    actorId,
   );
   return rows.map((row): SyncOperation => ({ ...row, payload: JSON.parse(row.payload) }));
 }
 
-export async function processSyncQueue(database: SQLiteDatabase) {
-  const pending = await getPendingSync(database);
+export async function processSyncQueue(database: SQLiteDatabase, actorId: string, role: TrabajoListRole) {
+  const pending = await getPendingSync(database, actorId, role);
   if (pending.length === 0) return 0;
 
   const prepared = [];

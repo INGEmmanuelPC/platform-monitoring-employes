@@ -43,8 +43,14 @@ export function AccountContent() {
         ) : pendientes.length > 0 ? (
           <View className="rounded-xl border p-4" style={{ backgroundColor: DESIGN.colors.surface, borderColor: DESIGN.colors.border }}>
             <Text className="text-sm" style={{ color: DESIGN.colors.textSecondary }}>
-              Hay cambios de campo pendientes en este dispositivo. Inicia sesión con la cuenta del técnico que los registró para sincronizarlos; administración solo consulta los cambios confirmados en el servidor.
+              Hay cambios locales pendientes en este dispositivo. Administración sincroniza solo sus propios cambios; los pendientes creados por un técnico requieren la cuenta de ese técnico.
             </Text>
+            {profile?.role === "admin" ? (
+              <View className="mt-3">
+                <Button text={syncing ? "Sincronizando..." : "Sincronizar mis cambios"} onPress={() => void syncAndRefresh()} disabled={syncing} />
+                {syncMessage ? <Text className="mt-2 text-sm" style={{ color: DESIGN.colors.textSecondary }}>{syncMessage}</Text> : null}
+              </View>
+            ) : null}
           </View>
         ) : null}
         <ManagementMenu />

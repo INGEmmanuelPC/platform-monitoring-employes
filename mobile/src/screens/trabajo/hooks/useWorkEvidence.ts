@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 
 import { getEvidencias, guardarEvidencia } from "@/src/data/trabajos";
+import { useAuth } from "@/src/session/AuthProvider";
 
 type TipoEvidencia = "FOTO_ANTES" | "FOTO_DESPUES";
 
@@ -11,6 +12,7 @@ export function useWorkEvidence() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const database = useSQLiteContext();
+  const { profile, session } = useAuth();
   const [beforeUri, setBeforeUri] = useState<string | null>(null);
   const [afterUri, setAfterUri] = useState<string | null>(null);
   const [taking, setTaking] = useState<TipoEvidencia | null>(null);
@@ -50,8 +52,8 @@ export function useWorkEvidence() {
         quality: 0.7,
       });
       const uri = result.assets?.[0]?.uri;
-      if (!result.canceled && uri && id) {
-        await guardarEvidencia(database, id, tipo, uri);
+      if (!result.canceled && uri && id && session?.user.id) {
+        await guardarEvidencia(database, id, tipo, uri, session.user.id, profile?.role ?? "tecnico");
         if (tipo === "FOTO_ANTES") setBeforeUri(uri);
         else setAfterUri(uri);
       }
