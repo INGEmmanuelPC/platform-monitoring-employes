@@ -16,7 +16,7 @@ const compiled = ts.transpileModule(source, {
   },
 }).outputText;
 const compiledUrl = `data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`;
-const { firmaSvgTieneTrazo, transicionarTrabajo } = await import(compiledUrl);
+const { firmaSvgTieneTrazo, transicionTrabajoYaSuperada, transicionarTrabajo } = await import(compiledUrl);
 
 test("ASIGNADO puede iniciar el viaje", () => {
   assert.equal(transicionarTrabajo("ASIGNADO", "marcarEnCamino"), "EN_CAMINO");
@@ -24,6 +24,15 @@ test("ASIGNADO puede iniciar el viaje", () => {
 
 test("EN_CAMINO puede marcar llegada", () => {
   assert.equal(transicionarTrabajo("EN_CAMINO", "marcarLlegada"), "EN_SITIO");
+});
+
+test("reconoce y solo reconcilia estados pendientes que el servidor ya superó", () => {
+  assert.equal(transicionTrabajoYaSuperada("EN_SITIO", "EN_CAMINO"), true);
+  assert.equal(transicionTrabajoYaSuperada("COMPLETADO", "EN_SITIO"), true);
+  assert.equal(transicionTrabajoYaSuperada("CANCELADO", "EN_CAMINO"), true);
+  assert.equal(transicionTrabajoYaSuperada("EN_CAMINO", "EN_SITIO"), false);
+  assert.equal(transicionTrabajoYaSuperada("CANCELADO", "COMPLETADO"), false);
+  assert.equal(transicionTrabajoYaSuperada("EN_SITIO", "CANCELADO"), false);
 });
 
 test("no permite marcar llegada antes de iniciar el viaje", () => {

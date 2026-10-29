@@ -36,6 +36,23 @@ const ETIQUETA_ACCION: Record<AccionTrabajo, string> = {
   cancelar: "cancelar el trabajo",
 };
 
+const ORDEN_ESTADOS_ACTIVOS: Partial<Record<EstadoTrabajo, number>> = {
+  ASIGNADO: 0,
+  EN_CAMINO: 1,
+  EN_SITIO: 2,
+  COMPLETADO: 3,
+  CERRADO: 4,
+};
+
+export function transicionTrabajoYaSuperada(estadoServidor: string, estadoEnCola: string) {
+  if (estadoServidor === "CANCELADO") {
+    return ["ASIGNADO", "EN_CAMINO", "EN_SITIO"].includes(estadoEnCola);
+  }
+  const actual = ORDEN_ESTADOS_ACTIVOS[estadoServidor as EstadoTrabajo];
+  const pendiente = ORDEN_ESTADOS_ACTIVOS[estadoEnCola as EstadoTrabajo];
+  return actual !== undefined && pendiente !== undefined && pendiente < actual;
+}
+
 export function transicionarTrabajo(
   estado: EstadoTrabajo,
   accion: AccionTrabajo,

@@ -17,7 +17,7 @@ export function useSyncQueue() {
     try {
       if (!profile || !session?.user.id) throw new Error("No se pudo verificar la cuenta activa.");
       const count = await processSyncQueue(database, session.user.id, profile.role);
-      setSyncMessage(count ? `${count} cambios sincronizados.` : "No hay cambios pendientes.");
+      setSyncMessage(count ? `${count} cambios procesados.` : "No hay cambios pendientes.");
       return true;
     } catch (cause) {
       setSyncMessage(describeSyncFailure(cause, profile?.role));

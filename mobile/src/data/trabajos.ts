@@ -1,9 +1,9 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
 import type { TrabajoLocal } from "./types";
-import { syncOperations, uploadEvidence, type SyncOperation } from "@/src/api/entities";
+import { listEntities, syncOperations, uploadEvidence, type SyncOperation } from "@/src/api/entities";
 import { ApiRequestError } from "@/src/api/http";
-import { firmaSvgTieneTrazo, transicionarTrabajo } from "@/src/domain/estadoTrabajo";
+import { firmaSvgTieneTrazo, transicionTrabajoYaSuperada, transicionarTrabajo } from "@/src/domain/estadoTrabajo";
 import {
   buildTrabajosListQuery,
   buildTrabajoScopeFilter,
@@ -468,8 +468,60 @@ export async function getPendingSync(database: SQLiteDatabase, actorId: string, 
 }
 
 export async function processSyncQueue(database: SQLiteDatabase, actorId: string, role: TrabajoListRole) {
-  const pending = await getPendingSync(database, actorId, role);
+  let pending = await getPendingSync(database, actorId, role);
   if (pending.length === 0) return 0;
+  let reconciledCount = 0;
+
+  const queuedStateUpdates = pending.filter(
+    (operation) => operation.entity === "trabajos" && typeof operation.payload.estado === "string",
+  );
+  if (queuedStateUpdates.length > 0) {
+    const remoteTrabajos = await listEntities("ordenes", "");
+    const remoteStates = new Map(
+      remoteTrabajos
+        .filter((trabajo) => typeof trabajo.id === "string" && typeof trabajo.estado === "string")
+        .map((trabajo) => [trabajo.id, trabajo.estado as string]),
+    );
+    const stale = queuedStateUpdates.filter((operation) => {
+      const currentState = remoteStates.get(operation.entity_id);
+      return currentState !== undefined &&
+        transicionTrabajoYaSuperada(currentState, operation.payload.estado as string);
+    });
+
+    if (stale.length > 0) {
+      reconciledCount = stale.length;
+      const staleIds = new Set(stale.map((operation) => operation.id));
+      const staleWorkIds = new Set(stale.map((operation) => operation.entity_id));
+      await database.withTransactionAsync(async () => {
+        for (const operation of stale) {
+          await database.runAsync("DELETE FROM sync_queue WHERE id = ?", operation.id);
+        }
+        const stillQueued = await database.getAllAsync<{
+          entity: "trabajos" | "evidencias";
+          entity_id: string;
+          payload: string;
+        }>("SELECT entity, entity_id, payload FROM sync_queue");
+        for (const trabajoId of staleWorkIds) {
+          const workStillQueued = stillQueued.some((operation) => {
+            if (operation.entity === "trabajos") return operation.entity_id === trabajoId;
+            try {
+              return JSON.parse(operation.payload).trabajo_id === trabajoId;
+            } catch {
+              return false;
+            }
+          });
+          if (!workStillQueued) {
+            await database.runAsync(
+              "UPDATE trabajos SET sync = 'SINCRONIZADO' WHERE id = ?",
+              trabajoId,
+            );
+          }
+        }
+      });
+      pending = pending.filter((operation) => !staleIds.has(operation.id));
+      if (pending.length === 0) return reconciledCount;
+    }
+  }
 
   const prepared: SyncOperation[] = [];
   let results: { id: number; synced: boolean }[];
@@ -549,5 +601,5 @@ export async function processSyncQueue(database: SQLiteDatabase, actorId: string
       }
     }
   });
-  return results.length;
+  return results.length + reconciledCount;
 }
