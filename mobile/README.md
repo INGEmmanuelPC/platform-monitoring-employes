@@ -248,7 +248,7 @@ demás rutas requieren `Authorization: Bearer <access_token>`.
 | Ruta | Operaciones implementadas |
 | --- | --- |
 | `/auth/logout` | `POST` para cerrar sesión en el cliente. |
-| `/sync` | `POST` para procesar hasta 50 operaciones locales de trabajos o evidencias. |
+| `/sync` | `POST` para procesar hasta 50 operaciones locales de trabajos o evidencias mediante el RPC transaccional `sync_trabajos` (migración Supabase 006). |
 | `/evidencias/upload` | `POST` multipart para subir una imagen al bucket privado. |
 | `/tecnicos` | `GET`, `POST`, `GET /:id`, `PATCH /:id`, `DELETE /:id` (baja lógica del perfil permitido por RLS). |
 | `/clientes` | `GET`, `POST`, `GET /:id`, `PATCH /:id`, `DELETE /:id`. |
@@ -256,6 +256,9 @@ demás rutas requieren `Authorization: Bearer <access_token>`.
 
 La API valida la sesión con Supabase, crea un cliente por solicitud con el
 token Bearer y deja que las políticas RLS apliquen sobre PostgreSQL y Storage.
+Las transiciones del servidor se comparan con el estado persistido. Completar
+requiere una firma SVG con trazo sincronizada y al menos una foto; cerrar requiere
+reporte aprobado; cancelar requiere motivo.
 
 ## Flujo de prueba
 
@@ -279,8 +282,12 @@ de trabajos y al usar el botón de sincronización, intenta enviar la cola a la
 API; las fotos locales se suben antes al bucket privado y luego se registra su
 ruta.
 
-Un fallo de red no bloquea esas acciones locales. La cola aún no tiene un
-planificador en segundo plano ni pruebas automáticas de reintentos/conflictos.
+Un fallo de red no bloquea esas acciones locales ni oculta la copia leída de
+SQLite. La cola se envía por lotes atómicos y una respuesta de conflicto conserva
+las operaciones pendientes y marca el trabajo `CONFLICTO`. Las fotografías se
+suben con una ruta estable para que un reintento no cree otro objeto remoto.
+Sigue pendiente probar el modo avión y la recuperación de conexión en un
+dispositivo físico.
 
 ## Validación y pruebas
 
@@ -298,11 +305,11 @@ npm run typecheck
 Cada módulo revisa lo suyo con su propia configuración de TypeScript. Consulta
 `../backend/README.md` para la configuración del servidor.
 
-La suite `node:test` cubre las transiciones válidas e inválidas de la máquina de
-estados y el mapeo de errores de autenticación. También se recomienda probar el
-flujo principal con el dispositivo en modo avión después de haber cargado los
-datos locales. La validación manual con Supabase y en un dispositivo físico
-sigue siendo necesaria para los flujos de cámara, sincronización y autenticación.
+Las suites `node:test` cubren las transiciones móviles y del servidor, las
+guardas de firma SVG y el mapeo de errores de autenticación. Los comandos que se
+ejecutaron y sus resultados están registrados en
+`docs/entrega-tecnicos-campo.md`. La validación manual con Supabase y en un
+dispositivo físico sigue pendiente.
 
 ## Estructura
 

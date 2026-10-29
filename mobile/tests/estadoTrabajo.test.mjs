@@ -16,7 +16,7 @@ const compiled = ts.transpileModule(source, {
   },
 }).outputText;
 const compiledUrl = `data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`;
-const { transicionarTrabajo } = await import(compiledUrl);
+const { firmaSvgTieneTrazo, transicionarTrabajo } = await import(compiledUrl);
 
 test("ASIGNADO puede iniciar el viaje", () => {
   assert.equal(transicionarTrabajo("ASIGNADO", "marcarEnCamino"), "EN_CAMINO");
@@ -60,4 +60,15 @@ test("cancelar requiere motivo y deja el estado terminal", () => {
     "CANCELADO",
   );
   assert.throws(() => transicionarTrabajo("CANCELADO", "marcarEnCamino"), /inicio del viaje/);
+});
+
+test("rechaza estados y acciones desconocidos incluso en tiempo de ejecución", () => {
+  assert.throws(() => transicionarTrabajo("OTRO", "marcarLlegada"), /estado OTRO/);
+  assert.throws(() => transicionarTrabajo("ASIGNADO", "forzarEstado"), /acción desconocida forzarEstado/);
+});
+
+test("la firma requiere una ruta SVG con un trazo y más de un punto", () => {
+  assert.equal(firmaSvgTieneTrazo(null), false);
+  assert.equal(firmaSvgTieneTrazo('<svg><path d="M 12 15"/></svg>'), false);
+  assert.equal(firmaSvgTieneTrazo('<svg><path d="M 12 15 L 19 22"/></svg>'), true);
 });

@@ -15,6 +15,7 @@ type Profile = {
 type AuthContextValue = {
   session: Session | null;
   profile: Profile | null;
+  profileError: string | null;
   loading: boolean;
   signOut: () => Promise<void>;
 };
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -70,15 +72,25 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const userId = session?.user.id;
     if (!userId) {
       setProfile(null);
+      setProfileError(null);
       return;
     }
+    setProfile(null);
+    setProfileError(null);
     supabase
       .from("profiles")
       .select("id, role, full_name")
       .eq("id", userId)
       .single()
-      .then(({ data }) => {
-        if (active && data) setProfile(data as Profile);
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error || !data) {
+          setProfileError("No se pudo verificar el rol de esta cuenta.");
+          return;
+        }
+        setProfile(data as Profile);
+      }, () => {
+        if (active) setProfileError("No se pudo verificar el rol de esta cuenta.");
       });
     return () => {
       active = false;
@@ -90,7 +102,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, profile, loading, signOut }}>
+    <AuthContext.Provider value={{ session, profile, profileError, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   );

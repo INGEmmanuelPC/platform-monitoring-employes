@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 
 import { finalizarTrabajo } from "@/src/data/trabajos";
+import { firmaSvgTieneTrazo } from "@/src/domain/estadoTrabajo";
 import { useAuth } from "@/src/session/AuthProvider";
 
 import type { FirmaTouchEvent } from "../components/FirmaPad";
@@ -33,15 +34,15 @@ export function useWorkSignature() {
       setError("No se pudo identificar el trabajo.");
       return;
     }
-    if (!signaturePath) {
-      setError("El cliente debe firmar antes de terminar.");
+    const firmaSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="260" viewBox="0 0 360 260"><path d="${signaturePath}" fill="none" stroke="#17313F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    if (!firmaSvgTieneTrazo(firmaSvg)) {
+      setError("El cliente debe dibujar una firma antes de terminar.");
       return;
     }
 
     setSaving(true);
     setError(null);
     try {
-      const firmaSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="260" viewBox="0 0 360 260"><path d="${signaturePath}" fill="none" stroke="#17313F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
       await finalizarTrabajo(database, session.user.id, id, firmaSvg);
       router.replace("/");
     } catch (cause) {

@@ -1,0 +1,233 @@
+{
+  "info": {
+    "name": "Cuadrilla · Técnicos de campo",
+    "description": "Comprobaciones controladas del backend real para conectividad, transición de estados, firma, cancelación y sincronización atómica. Requiere IDs de trabajos de prueba asignados explícitamente en el entorno.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "1. Conectividad y autenticación",
+      "item": [
+        {
+          "name": "Salud del backend",
+          "request": { "method": "GET", "auth": { "type": "noauth" }, "url": "{{baseUrl}}/health" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('responde HTTP 200', () => pm.response.to.have.status(200));",
+            "const body = pm.response.json();",
+            "pm.test('incluye estado, revisión y hora de inicio', () => { pm.expect(body.status).to.eql('ok'); pm.expect(body.revision).to.be.a('string'); pm.expect(body.startedAt).to.be.a('string'); });"
+          ] } }]
+        },
+        {
+          "name": "Iniciar sesión y guardar token local",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('responde HTTP 200', () => pm.response.to.have.status(200));",
+            "const body = pm.response.json();",
+            "pm.test('devuelve usuario y sesión', () => { pm.expect(body.user.id).to.be.a('string'); pm.expect(body.session.access_token).to.be.a('string'); });",
+            "pm.environment.set('accessToken', body.session.access_token);"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "2. Consultar estado antes y después",
+      "item": [
+        {
+          "name": "Listar órdenes visibles",
+          "request": { "method": "GET", "url": "{{baseUrl}}/ordenes" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('responde HTTP 200', () => pm.response.to.have.status(200));",
+            "const rows = pm.response.json();",
+            "pm.test('devuelve una lista de órdenes', () => { pm.expect(rows).to.be.an('array'); if (rows.length) { pm.expect(rows[0]).to.have.property('estado'); pm.expect(rows[0]).to.have.property('id'); } });"
+          ] } }]
+        },
+        {
+          "name": "Leer orden para salto inválido",
+          "request": { "method": "GET", "url": "{{baseUrl}}/ordenes/{{ordenIdInvalid}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('responde HTTP 200', () => pm.response.to.have.status(200));",
+            "const body = pm.response.json();",
+            "pm.environment.set('estadoInvalidAntes', body.estado);",
+            "pm.test('el fixture está en ASIGNADO', () => pm.expect(body.estado).to.eql('ASIGNADO'));"
+          ] } }]
+        },
+        {
+          "name": "Leer orden EN_SITIO sin firma",
+          "request": { "method": "GET", "url": "{{baseUrl}}/ordenes/{{ordenIdSinFirma}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('responde HTTP 200', () => pm.response.to.have.status(200));",
+            "const body = pm.response.json();",
+            "pm.environment.set('estadoSinFirmaAntes', body.estado);",
+            "pm.test('el fixture está EN_SITIO', () => pm.expect(body.estado).to.eql('EN_SITIO'));"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "3. Reglas de transición en el servidor",
+      "item": [
+        {
+          "name": "Rechazar ASIGNADO → EN_SITIO",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"estado\": \"EN_SITIO\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/ordenes/{{ordenIdInvalid}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('el servidor rechaza con HTTP 409', () => pm.response.to.have.status(409));",
+            "const body = pm.response.json();",
+            "pm.test('explica el rechazo de transición', () => pm.expect(body.error).to.include('rechazó la transición'));",
+            "pm.test('el fixture se había leído como ASIGNADO', () => pm.expect(pm.environment.get('estadoInvalidAntes')).to.eql('ASIGNADO'));"
+          ] } }]
+        },
+        {
+          "name": "Confirmar que el salto inválido no cambió el trabajo",
+          "request": { "method": "GET", "url": "{{baseUrl}}/ordenes/{{ordenIdInvalid}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('responde HTTP 200', () => pm.response.to.have.status(200));",
+            "pm.test('el estado persistido sigue ASIGNADO', () => pm.expect(pm.response.json().estado).to.eql('ASIGNADO'));"
+          ] } }]
+        },
+        {
+          "name": "Rechazar finalización sin firma",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"estado\": \"COMPLETADO\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/ordenes/{{ordenIdSinFirma}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('el servidor rechaza con HTTP 409', () => pm.response.to.have.status(409));",
+            "pm.test('el mensaje exige firma', () => pm.expect(pm.response.json().error).to.include('firma'));",
+            "pm.test('el fixture estaba EN_SITIO', () => pm.expect(pm.environment.get('estadoSinFirmaAntes')).to.eql('EN_SITIO'));"
+          ] } }]
+        },
+        {
+          "name": "Confirmar que la finalización sin firma no cambió el estado",
+          "request": { "method": "GET", "url": "{{baseUrl}}/ordenes/{{ordenIdSinFirma}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('responde HTTP 200', () => pm.response.to.have.status(200));",
+            "pm.test('sigue EN_SITIO', () => pm.expect(pm.response.json().estado).to.eql('EN_SITIO'));"
+          ] } }]
+        },
+        {
+          "name": "Permitir transición válida ASIGNADO → EN_CAMINO",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"estado\": \"EN_CAMINO\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/ordenes/{{ordenIdValida}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('responde HTTP 200', () => pm.response.to.have.status(200));",
+            "pm.test('devuelve EN_CAMINO', () => pm.expect(pm.response.json().estado).to.eql('EN_CAMINO'));"
+          ] } }]
+        },
+        {
+          "name": "Confirmar transición válida persistida",
+          "request": { "method": "GET", "url": "{{baseUrl}}/ordenes/{{ordenIdValida}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('responde HTTP 200 y persiste EN_CAMINO', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().estado).to.eql('EN_CAMINO'); });"
+          ] } }]
+        },
+        {
+          "name": "Rechazar estado desconocido",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"estado\": \"ESTADO_INVENTADO\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/ordenes/{{ordenIdInvalid}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('responde HTTP 400', () => pm.response.to.have.status(400));",
+            "pm.test('devuelve error de validación', () => pm.expect(pm.response.json().error).to.be.a('string'));"
+          ] } }]
+        },
+        {
+          "name": "Rechazar payload vacío",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/ordenes/{{ordenIdInvalid}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('responde HTTP 400', () => pm.response.to.have.status(400));",
+            "pm.test('la respuesta explica la validación', () => pm.expect(pm.response.json().error).to.be.a('string'));"
+          ] } }]
+        },
+        {
+          "name": "Confirmar que payloads inválidos no cambiaron la orden",
+          "request": { "method": "GET", "url": "{{baseUrl}}/ordenes/{{ordenIdInvalid}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('la orden sigue ASIGNADO', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().estado).to.eql('ASIGNADO'); });"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "4. Cancelación",
+      "item": [
+        {
+          "name": "Cancelar con motivo",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"estado\": \"CANCELADO\",\n  \"motivo_cancelacion\": \"Fixture de Postman cancelado\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/ordenes/{{ordenIdCancelar}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('responde HTTP 200', () => pm.response.to.have.status(200));",
+            "pm.test('persiste CANCELADO y el motivo', () => { const body = pm.response.json(); pm.expect(body.estado).to.eql('CANCELADO'); pm.expect(body.motivo_cancelacion).to.eql('Fixture de Postman cancelado'); });"
+          ] } }]
+        },
+        {
+          "name": "Rechazar cambio posterior a CANCELADO",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"estado\": \"EN_CAMINO\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/ordenes/{{ordenIdCancelar}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('responde HTTP 409', () => pm.response.to.have.status(409));",
+            "pm.test('el estado terminal no se reabre', () => pm.expect(pm.response.json().error).to.include('rechazó la transición'));"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "5. Sincronización atómica",
+      "item": [
+        {
+          "name": "Rechazar lote inválido completo",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "[\n  {\n    \"id\": 91001,\n    \"entity\": \"trabajos\",\n    \"entity_id\": \"{{ordenIdLoteValido}}\",\n    \"operation\": \"UPDATE\",\n    \"payload\": { \"estado\": \"EN_CAMINO\" }\n  },\n  {\n    \"id\": 91002,\n    \"entity\": \"trabajos\",\n    \"entity_id\": \"{{ordenIdLoteInvalido}}\",\n    \"operation\": \"UPDATE\",\n    \"payload\": { \"estado\": \"EN_SITIO\" }\n  }\n]", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/sync"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('el lote completo se rechaza con HTTP 409', () => pm.response.to.have.status(409));",
+            "pm.test('la respuesta explica el estado inválido', () => pm.expect(pm.response.json().error).to.include('rechazó la transición'));"
+          ] } }]
+        },
+        {
+          "name": "Verificar que el lote no aplicó cambios parciales (válido)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/ordenes/{{ordenIdLoteValido}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('la primera orden sigue ASIGNADO', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().estado).to.eql('ASIGNADO'); });"
+          ] } }]
+        },
+        {
+          "name": "Verificar que el lote no aplicó cambios parciales (inválido)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/ordenes/{{ordenIdLoteInvalido}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('la segunda orden sigue ASIGNADO', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().estado).to.eql('ASIGNADO'); });"
+          ] } }]
+        },
+        {
+          "name": "Sincronizar transición válida e idempotente",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "[\n  {\n    \"id\": 92001,\n    \"entity\": \"trabajos\",\n    \"entity_id\": \"{{ordenIdSyncValida}}\",\n    \"operation\": \"UPDATE\",\n    \"payload\": { \"estado\": \"EN_CAMINO\" }\n  }\n]", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/sync" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('responde HTTP 200 con resultado sincronizado', () => { pm.response.to.have.status(200); const body = pm.response.json(); pm.expect(body.results).to.be.an('array'); pm.expect(body.results[0]).to.include({ id: 92001, synced: true }); });"
+          ] } }]
+        },
+        {
+          "name": "Reintentar el mismo estado sincronizado",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "[\n  {\n    \"id\": 92001,\n    \"entity\": \"trabajos\",\n    \"entity_id\": \"{{ordenIdSyncValida}}\",\n    \"operation\": \"UPDATE\",\n    \"payload\": { \"estado\": \"EN_CAMINO\" }\n  }\n]", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/sync" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('reintentar el estado existente devuelve éxito sin duplicar cambios', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().results[0]).to.include({ id: 92001, synced: true }); });"
+          ] } }]
+        },
+        {
+          "name": "Confirmar estado sincronizado",
+          "request": { "method": "GET", "url": "{{baseUrl}}/ordenes/{{ordenIdSyncValida}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('el servidor persistió EN_CAMINO', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().estado).to.eql('EN_CAMINO'); });"
+          ] } }]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "accessToken", "value": "" }
+  ]
+}

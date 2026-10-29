@@ -2,6 +2,7 @@ import { useSQLiteContext } from "expo-sqlite";
 import { useState } from "react";
 
 import { processSyncQueue } from "@/src/data/trabajos";
+import { describeSyncFailure } from "@/src/domain/syncError";
 
 export function useSyncQueue() {
   const database = useSQLiteContext();
@@ -14,8 +15,10 @@ export function useSyncQueue() {
     try {
       const count = await processSyncQueue(database);
       setSyncMessage(count ? `${count} cambios sincronizados.` : "No hay cambios pendientes.");
-    } catch {
-      setSyncMessage("No se pudo sincronizar. Revisa la conexión y vuelve a intentarlo.");
+      return true;
+    } catch (cause) {
+      setSyncMessage(describeSyncFailure(cause));
+      return false;
     } finally {
       setSyncing(false);
     }

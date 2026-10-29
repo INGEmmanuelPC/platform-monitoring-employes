@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { ScrollView, Text, TextInput, View } from "react-native";
+import { RefreshControl, ScrollView, Text, TextInput, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
@@ -18,7 +18,12 @@ export function EntityListScreen({ entity }: { entity: EntityName }) {
   const { items, search, setSearch, loading, error, reload } = useEntityList(entity);
 
   return (
-    <ScrollView className="flex-1" style={{ backgroundColor: DESIGN.colors.canvas }} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      className="flex-1"
+      style={{ backgroundColor: DESIGN.colors.canvas }}
+      keyboardShouldPersistTaps="handled"
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={() => { reload(); }} />}
+    >
       <View className="gap-4 p-4">
         <Text className="font-display text-2xl" style={{ color: DESIGN.colors.text }}>{definition.title}</Text>
         <View className="items-center">

@@ -50,7 +50,7 @@ export function syncOperations(operations: SyncOperation[]) {
   });
 }
 
-export async function uploadEvidence(uri: string, type: "FOTO_ANTES" | "FOTO_DESPUES") {
+export async function uploadEvidence(uri: string, type: "FOTO_ANTES" | "FOTO_DESPUES", evidenceId: string) {
   const { data } = await supabase.auth.getSession();
   const form = new FormData();
   form.append("file", { uri, name: "evidencia.jpg", type: "image/jpeg" } as unknown as Blob);
@@ -59,6 +59,7 @@ export async function uploadEvidence(uri: string, type: "FOTO_ANTES" | "FOTO_DES
     headers: {
       Authorization: `Bearer ${data.session?.access_token ?? ""}`,
       "x-evidence-type": type,
+      "x-evidence-id": evidenceId,
     },
     body: form,
   });

@@ -35,7 +35,7 @@ export function PendingSyncCard({ pendientes, syncing, message, onSync }: Props)
       )}
 
       <Text className="text-xs" style={{ color: DESIGN.colors.textSecondary }}>
-        Sube solo cuando vuelva la señal. No hay que hacer nada.
+        Con conexión se intenta sincronizar al abrir las listas. Si continúa pendiente, pulsa «Sincronizar ahora» y revisa el resultado.
       </Text>
       {message ? <Text className="text-sm" style={{ color: DESIGN.colors.text }}>{message}</Text> : null}
       <Button text={syncing ? "Sincronizando..." : "Sincronizar ahora"} onPress={onSync} disabled={syncing} />

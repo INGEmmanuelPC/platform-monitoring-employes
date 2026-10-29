@@ -5,13 +5,14 @@ import { z, type ZodError } from "zod";
 
 import { config } from "./config.js";
 import { createAdminClient, createRequestClient } from "./supabase.js";
-import { esTransicionTrabajoValida, type EstadoTrabajoServidor } from "./trabajo-state.js";
+import { esFirmaSvgValida, esTransicionTrabajoValida, type EstadoTrabajoServidor } from "./trabajo-state.js";
 import {
   clienteSchema,
   credentialsSchema,
   ordenSchema,
   patchSchema,
   registerSchema,
+  syncOperationSchema,
   tecnicoCreateSchema,
   tecnicoUpdateSchema,
 } from "./validation.js";
@@ -79,6 +80,21 @@ function requireAdmin(_request: Request, response: Response, next: NextFunction)
 
 const parse = <T>(schema: z.ZodType<T>, value: unknown) => schema.parse(value);
 
+async function tieneEvidenciaValida(
+  supabase: ReturnType<typeof createRequestClient>,
+  trabajoId: string,
+  tipo: "FIRMA" | "FOTO_ANTES" | "FOTO_DESPUES",
+) {
+  const { data, error } = await supabase.from("evidencias")
+    .select("id, contenido, storage_path")
+    .eq("trabajo_id", trabajoId)
+    .eq("tipo", tipo)
+    .limit(20);
+  if (error) throw error;
+  if (tipo !== "FIRMA") return data.some((item) => Boolean(item.storage_path?.trim()));
+  return data.some((item) => esFirmaSvgValida(item.contenido));
+}
+
 app.get("/health", (_request, response) => {
   response.json({ status: "ok", revision: apiRevision, startedAt });
 });
@@ -126,11 +142,22 @@ app.post("/evidencias/upload", upload.single("file"), async (request, response, 
       response.status(400).json({ error: "No se recibió ninguna imagen." });
       return;
     }
-    const type = request.header("x-evidence-type") === "FOTO_DESPUES" ? "FOTO_DESPUES" : "FOTO_ANTES";
-    const path = `${response.locals.user.id}/${crypto.randomUUID()}-${type}.jpg`;
+    const requestedType = request.header("x-evidence-type");
+    const evidenceId = request.header("x-evidence-id");
+    if (!evidenceId || !/^[A-Za-z0-9_-]{1,120}$/.test(evidenceId)) {
+      response.status(400).json({ error: "La evidencia no tiene un identificador válido." });
+      return;
+    }
+    if (requestedType !== "FOTO_ANTES" && requestedType !== "FOTO_DESPUES") {
+      response.status(400).json({ error: "El tipo de fotografía no es válido." });
+      return;
+    }
+    const type = requestedType;
+    // La ruta estable hace idempotentes los reintentos de una carga offline.
+    const path = `${response.locals.user.id}/${evidenceId}-${type}.jpg`;
     const { error } = await response.locals.supabase.storage
       .from("evidencias")
-      .upload(path, request.file.buffer, { contentType: request.file.mimetype, upsert: false });
+      .upload(path, request.file.buffer, { contentType: request.file.mimetype, upsert: true });
     if (error) throw error;
     response.status(201).json({ path });
   } catch (error) { next(error); }
@@ -138,89 +165,18 @@ app.post("/evidencias/upload", upload.single("file"), async (request, response, 
 
 app.post("/sync", async (request, response, next) => {
   try {
-    const operations = z.array(z.object({
-      id: z.number().int().positive(),
-      entity: z.enum(["trabajos", "evidencias"]),
-      entity_id: z.string().min(1),
-      operation: z.enum(["UPDATE", "INSERT"]),
-      payload: z.record(z.string(), z.unknown()),
-    })).max(50).parse(request.body);
-    const results = [];
-
-    for (const operation of operations) {
-      const table = operation.entity;
-      if (table === "evidencias") {
-        const trabajoId = operation.payload.trabajo_id;
-        if (typeof trabajoId !== "string") {
-          response.status(400).json({ error: "La evidencia no tiene una orden de trabajo válida." });
-          return;
-        }
-        const { data: trabajo, error: trabajoError } = await response.locals.supabase
-          .from("trabajos")
-          .select("id, tecnico_id")
-          .eq("id", trabajoId)
-          .maybeSingle();
-        if (trabajoError) throw trabajoError;
-        if (!trabajo) {
-          response.status(409).json({ error: "La orden de esta evidencia no existe o pertenece a otro técnico." });
-          return;
-        }
-      }
-      if (table === "trabajos" && operation.operation === "UPDATE" && typeof operation.payload.estado === "string") {
-        const siguiente = operation.payload.estado as EstadoTrabajoServidor;
-        const { data: trabajo, error: lookupError } = await response.locals.supabase
-          .from("trabajos")
-          .select("id, estado")
-          .eq("id", operation.entity_id)
-          .maybeSingle();
-        if (lookupError) throw lookupError;
-        if (!trabajo) {
-          response.status(409).json({ error: "La orden no existe o ya no está disponible." });
-          return;
-        }
-        if (!esTransicionTrabajoValida(trabajo.estado, siguiente)) {
-          response.status(409).json({ error: `El servidor rechazó la transición de ${trabajo.estado} a ${siguiente}.` });
-          return;
-        }
-        const { data, error } = await response.locals.supabase
-          .from("trabajos")
-          .update(operation.payload)
-          .eq("id", operation.entity_id)
-          .eq("estado", trabajo.estado)
-          .select("id")
-          .maybeSingle();
-        if (error) throw error;
-        if (!data) {
-          response.status(409).json({ error: "La orden cambió mientras se sincronizaba. Actualízala e inténtalo de nuevo." });
-          return;
-        }
-        results.push({ id: operation.id, synced: true });
-        continue;
-      }
-      if (
-        table === "trabajos" &&
-        operation.operation === "INSERT" &&
-        operation.payload.estado !== undefined &&
-        operation.payload.estado !== "ASIGNADO"
-      ) {
-        response.status(409).json({ error: "Una orden nueva debe iniciar en estado ASIGNADO." });
+    const operations = z.array(syncOperationSchema).max(50).parse(request.body);
+    const { data, error } = await response.locals.supabase.rpc("sync_trabajos", {
+      p_operations: operations,
+    });
+    if (error) {
+      if (error.code === "P0001" || error.code === "23514") {
+        response.status(409).json({ error: error.message });
         return;
       }
-      const query = operation.operation === "UPDATE"
-        ? response.locals.supabase.from(table).update(operation.payload).eq("id", operation.entity_id)
-        : table === "evidencias"
-          ? response.locals.supabase.from(table).insert(operation.payload)
-          : response.locals.supabase.from(table).insert({
-            id: operation.entity_id,
-            ...operation.payload,
-            ...(table === "trabajos" ? { estado: "ASIGNADO" } : {}),
-          });
-      const { error } = await query;
-      if (error) throw error;
-      results.push({ id: operation.id, synced: true });
+      throw error;
     }
-
-    response.json({ results });
+    response.json(data);
   } catch (error) { next(error); }
 });
 
@@ -377,7 +333,7 @@ function crudRoutes(path: string, table: "clientes" | "trabajos", schema: z.ZodO
       if (table === "trabajos" && typeof input.estado === "string") {
         const { data: trabajo, error: lookupError } = await response.locals.supabase
           .from("trabajos")
-          .select("id, estado")
+          .select("id, estado, reporte")
           .eq("id", request.params.id)
           .maybeSingle();
         if (lookupError) throw lookupError;
@@ -387,6 +343,29 @@ function crudRoutes(path: string, table: "clientes" | "trabajos", schema: z.ZodO
         }
         if (!esTransicionTrabajoValida(trabajo.estado, input.estado as EstadoTrabajoServidor)) {
           response.status(409).json({ error: `El servidor rechazó la transición de ${trabajo.estado} a ${input.estado}.` });
+          return;
+        }
+        if (input.estado === "COMPLETADO") {
+          const [firma, fotoAntes, fotoDespues] = await Promise.all([
+            tieneEvidenciaValida(response.locals.supabase, request.params.id, "FIRMA"),
+            tieneEvidenciaValida(response.locals.supabase, request.params.id, "FOTO_ANTES"),
+            tieneEvidenciaValida(response.locals.supabase, request.params.id, "FOTO_DESPUES"),
+          ]);
+          if (!firma) {
+            response.status(409).json({ error: "No se puede completar el trabajo sin una firma capturada y sincronizada." });
+            return;
+          }
+          if (!fotoAntes && !fotoDespues) {
+            response.status(409).json({ error: "No se puede completar el trabajo sin una fotografía sincronizada." });
+            return;
+          }
+        }
+        if (input.estado === "CERRADO" && trabajo.reporte !== "APROBADO") {
+          response.status(409).json({ error: "Solo se puede cerrar un trabajo con el reporte aprobado." });
+          return;
+        }
+        if (input.estado === "CANCELADO" && !(typeof input.motivo_cancelacion === "string" && input.motivo_cancelacion.trim())) {
+          response.status(400).json({ error: "Indica el motivo de cancelación del trabajo." });
           return;
         }
         let query = response.locals.supabase
@@ -481,6 +460,10 @@ app.use((error: unknown, _request: Request, response: Response, _next: NextFunct
   }
   if (code === "23505") {
     response.status(409).json({ error: "Ya existe un registro con esos datos." });
+    return;
+  }
+  if (code === "23514") {
+    response.status(409).json({ error: rawMessage });
     return;
   }
   if (code === "23503" || rawMessage.includes("violates foreign key constraint")) {

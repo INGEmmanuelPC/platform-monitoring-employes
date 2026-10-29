@@ -14,6 +14,7 @@ export type TrabajoLocal = {
   llegada_at: string | null;
   hora_salida: string | null;
   observaciones: string;
+  motivo_cancelacion: string | null;
   estado: EstadoTrabajo;
   sync: EstadoSync;
   reporte: EstadoReporte;

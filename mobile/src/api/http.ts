@@ -12,6 +12,13 @@ const apiUrl =
 // quede bloqueada esperando una red que no está disponible.
 const REQUEST_TIMEOUT_MS = 15_000;
 
+export class ApiRequestError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = "ApiRequestError";
+  }
+}
+
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const { data } = await supabase.auth.getSession();
   const headers = new Headers(init.headers);
@@ -44,7 +51,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   if (!response.ok) {
     const revision = response.headers.get("x-backend-revision");
     const source = revision ? ` [API: ${revision}]` : "";
-    throw new Error(`${body?.error ?? "No fue posible completar la solicitud."}${source}`);
+    throw new ApiRequestError(`${body?.error ?? "No fue posible completar la solicitud."}${source}`, response.status);
   }
 
   return body as T;
