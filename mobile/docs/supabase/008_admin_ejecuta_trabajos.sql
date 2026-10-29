@@ -250,3 +250,4 @@ before update of estado on public.trabajos
 for each row execute function public.validar_transicion_trabajo();
 
 revoke all on function public.validar_transicion_trabajo() from public;
+
