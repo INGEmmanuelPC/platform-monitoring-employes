@@ -28,6 +28,17 @@ test("conserva el mensaje del backend para permisos o reglas de negocio", () => 
   assert.equal(describeSyncFailure(error), error.message);
 });
 
+test("explica al administrador que necesita la migración para ejecutar órdenes asignadas a técnicos", () => {
+  const error = Object.assign(new Error("La orden no existe o no pertenece al técnico autenticado."), { status: 409 });
+  assert.match(describeSyncFailure(error, "admin"), /008_admin_ejecuta_trabajos\.sql/);
+});
+
+test("explica al administrador cuando RLS rechaza sus evidencias o cambios", () => {
+  const error = Object.assign(new Error("Supabase bloqueó la operación por RLS."), { status: 403 });
+  assert.match(describeSyncFailure(error, "admin"), /005_admin_gestiona_trabajos\.sql/);
+  assert.match(describeSyncFailure(error, "tecnico"), /Supabase bloqueó/);
+});
+
 test("muestra el error de conexión disponible", () => {
   assert.equal(describeSyncFailure(new Error("Network request failed")), "Network request failed");
 });

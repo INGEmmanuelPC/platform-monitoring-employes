@@ -29,7 +29,7 @@ export function PendingSyncCard({ pendientes, syncing, message, onSync }: Props)
       ) : (
         pendientes.map((trabajo) => (
           <Text key={trabajo.id} className="text-sm" style={{ color: DESIGN.colors.textSecondary }}>
-            · {trabajo.cliente}
+            · {trabajo.cliente}{trabajo.sync === "CONFLICTO" ? " · requiere revisión" : ""}
           </Text>
         ))
       )}

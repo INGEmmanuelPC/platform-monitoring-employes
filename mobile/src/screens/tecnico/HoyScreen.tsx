@@ -11,7 +11,7 @@ import { useAuth } from "@/src/session/AuthProvider";
 import { TrabajoHoyCard } from "./components/TrabajoHoyCard";
 
 export default function HoyScreen() {
-  const { trabajos, loading, error } = useTrabajos();
+  const { trabajos, loading, error, refresh } = useTrabajos();
   const { profile } = useAuth();
   const isAdmin = profile?.role === "admin";
   const pendientes = filtrarTrabajosPendientes(trabajos);
@@ -23,7 +23,7 @@ export default function HoyScreen() {
           {pendientes.length} trabajos pendientes
         </Text>
         {loading ? <ListSkeleton count={3} /> : null}
-        {error ? <ErrorBanner message={error} /> : null}
+        {error ? <ErrorBanner message={error} onRetry={refresh} /> : null}
         {!loading && pendientes.length === 0 ? (
           <EmptyState message={isAdmin ? "No hay trabajos pendientes." : "No tienes trabajos asignados."} />
         ) : null}

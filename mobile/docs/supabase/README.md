@@ -31,6 +31,26 @@ La migración 008 es necesaria para que la nueva vista operativa de Hoy permita 
 un administrador ejecutar una orden y sincronizar sus evidencias sin cambiar el
 técnico históricamente asignado.
 
+Para confirmar que 008 quedó instalada en el proyecto conectado, ejecuta:
+
+```sql
+select
+  position('private.is_admin()' in pg_get_functiondef('public.sync_trabajos(jsonb)'::regprocedure)) > 0 as rpc_admite_admin,
+  exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'evidencias'
+      and policyname = 'evidencias_select_admin' and cmd = 'SELECT'
+  ) as admin_puede_leer_evidencias,
+  exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'evidencias'
+      and policyname = 'evidencias_insert_admin' and cmd = 'INSERT'
+  ) as admin_puede_guardar_evidencias;
+```
+
+Las tres columnas deben devolver `true`. Ejecuta la consulta en el mismo
+proyecto Supabase al que apunta el backend desplegado.
+
 ## Administrador inicial y técnicos
 
 Después de ejecutar la migración 003, asigna el primer administrador de forma

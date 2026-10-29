@@ -58,7 +58,7 @@ export function useTrabajos() {
         if (profileError && isActive()) {
           setError("No se pudo verificar tu rol. Por seguridad solo se muestran trabajos asignados a esta cuenta.");
         } else if (syncFailure && isActive()) {
-          setError(`Hay cambios pendientes que no se pudieron sincronizar. ${describeSyncFailure(syncFailure)}`);
+          setError(`Hay cambios pendientes que no se pudieron sincronizar. ${describeSyncFailure(syncFailure, profile?.role)}`);
         }
       } catch {
         if (isActive()) {

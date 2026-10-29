@@ -16,7 +16,7 @@ export function AccountContent() {
   const { syncMessage, syncing, syncNow } = useSyncQueue();
   const isTechnician = profile?.role === "tecnico";
   const pendientes = trabajos.filter(
-    (trabajo) => trabajo.sync === "SOLO_LOCAL" || trabajo.sync === "EN_COLA",
+    (trabajo) => trabajo.sync === "SOLO_LOCAL" || trabajo.sync === "EN_COLA" || trabajo.sync === "CONFLICTO",
   );
   // El nombre viene primero del perfil (fuente de verdad), luego de user_metadata
   // (lo que Supabase trae en el JWT) y, si no hay ninguno, cae al email.

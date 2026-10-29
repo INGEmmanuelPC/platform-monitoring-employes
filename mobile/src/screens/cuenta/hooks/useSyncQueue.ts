@@ -20,7 +20,7 @@ export function useSyncQueue() {
       setSyncMessage(count ? `${count} cambios sincronizados.` : "No hay cambios pendientes.");
       return true;
     } catch (cause) {
-      setSyncMessage(describeSyncFailure(cause));
+      setSyncMessage(describeSyncFailure(cause, profile?.role));
       return false;
     } finally {
       setSyncing(false);

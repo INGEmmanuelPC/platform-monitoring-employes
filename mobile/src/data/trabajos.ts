@@ -471,26 +471,26 @@ export async function processSyncQueue(database: SQLiteDatabase, actorId: string
   const pending = await getPendingSync(database, actorId, role);
   if (pending.length === 0) return 0;
 
-  const prepared = [];
-  for (const operation of pending) {
-    if (
-      operation.entity === "evidencias" &&
-      typeof operation.payload.storage_path === "string" &&
-      /^(file:|content:)/.test(operation.payload.storage_path)
-    ) {
-      const storagePath = await uploadEvidence(
-        operation.payload.storage_path,
-        operation.payload.tipo as "FOTO_ANTES" | "FOTO_DESPUES",
-        operation.entity_id,
-      );
-      prepared.push({ ...operation, payload: { ...operation.payload, storage_path: storagePath } });
-    } else {
-      prepared.push(operation);
-    }
-  }
-
+  const prepared: SyncOperation[] = [];
   let results: { id: number; synced: boolean }[];
   try {
+    // Upload failures must follow the same retry/error path as RPC failures.
+    for (const operation of pending) {
+      if (
+        operation.entity === "evidencias" &&
+        typeof operation.payload.storage_path === "string" &&
+        /^(file:|content:)/.test(operation.payload.storage_path)
+      ) {
+        const storagePath = await uploadEvidence(
+          operation.payload.storage_path,
+          operation.payload.tipo as "FOTO_ANTES" | "FOTO_DESPUES",
+          operation.entity_id,
+        );
+        prepared.push({ ...operation, payload: { ...operation.payload, storage_path: storagePath } });
+      } else {
+        prepared.push(operation);
+      }
+    }
     ({ results } = await syncOperations(prepared));
   } catch (cause) {
     const errorMessage = cause instanceof Error ? cause.message : "No se pudo sincronizar.";
