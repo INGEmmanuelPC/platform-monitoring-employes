@@ -5,12 +5,14 @@ import { z, type ZodError } from "zod";
 
 import { config } from "./config.js";
 import { createAdminClient, createRequestClient } from "./supabase.js";
+import { esFirmaSvgValida, esTransicionTrabajoValida, type EstadoTrabajoServidor } from "./trabajo-state.js";
 import {
   clienteSchema,
   credentialsSchema,
   ordenSchema,
   patchSchema,
   registerSchema,
+  syncOperationSchema,
   tecnicoCreateSchema,
   tecnicoUpdateSchema,
 } from "./validation.js";
@@ -78,6 +80,21 @@ function requireAdmin(_request: Request, response: Response, next: NextFunction)
 
 const parse = <T>(schema: z.ZodType<T>, value: unknown) => schema.parse(value);
 
+async function tieneEvidenciaValida(
+  supabase: ReturnType<typeof createRequestClient>,
+  trabajoId: string,
+  tipo: "FIRMA" | "FOTO_ANTES" | "FOTO_DESPUES",
+) {
+  const { data, error } = await supabase.from("evidencias")
+    .select("id, contenido, storage_path")
+    .eq("trabajo_id", trabajoId)
+    .eq("tipo", tipo)
+    .limit(20);
+  if (error) throw error;
+  if (tipo !== "FIRMA") return data.some((item) => Boolean(item.storage_path?.trim()));
+  return data.some((item) => esFirmaSvgValida(item.contenido));
+}
+
 app.get("/health", (_request, response) => {
   response.json({ status: "ok", revision: apiRevision, startedAt });
 });
@@ -125,11 +142,22 @@ app.post("/evidencias/upload", upload.single("file"), async (request, response, 
       response.status(400).json({ error: "No se recibió ninguna imagen." });
       return;
     }
-    const type = request.header("x-evidence-type") === "FOTO_DESPUES" ? "FOTO_DESPUES" : "FOTO_ANTES";
-    const path = `${response.locals.user.id}/${crypto.randomUUID()}-${type}.jpg`;
+    const requestedType = request.header("x-evidence-type");
+    const evidenceId = request.header("x-evidence-id");
+    if (!evidenceId || !/^[A-Za-z0-9_-]{1,120}$/.test(evidenceId)) {
+      response.status(400).json({ error: "La evidencia no tiene un identificador válido." });
+      return;
+    }
+    if (requestedType !== "FOTO_ANTES" && requestedType !== "FOTO_DESPUES") {
+      response.status(400).json({ error: "El tipo de fotografía no es válido." });
+      return;
+    }
+    const type = requestedType;
+    // La ruta estable hace idempotentes los reintentos de una carga offline.
+    const path = `${response.locals.user.id}/${evidenceId}-${type}.jpg`;
     const { error } = await response.locals.supabase.storage
       .from("evidencias")
-      .upload(path, request.file.buffer, { contentType: request.file.mimetype, upsert: false });
+      .upload(path, request.file.buffer, { contentType: request.file.mimetype, upsert: true });
     if (error) throw error;
     response.status(201).json({ path });
   } catch (error) { next(error); }
@@ -137,45 +165,18 @@ app.post("/evidencias/upload", upload.single("file"), async (request, response, 
 
 app.post("/sync", async (request, response, next) => {
   try {
-    const operations = z.array(z.object({
-      id: z.number().int().positive(),
-      entity: z.enum(["trabajos", "evidencias"]),
-      entity_id: z.string().min(1),
-      operation: z.enum(["UPDATE", "INSERT"]),
-      payload: z.record(z.string(), z.unknown()),
-    })).max(50).parse(request.body);
-    const results = [];
-
-    for (const operation of operations) {
-      const table = operation.entity;
-      if (table === "evidencias") {
-        const trabajoId = operation.payload.trabajo_id;
-        if (typeof trabajoId !== "string") {
-          response.status(400).json({ error: "La evidencia no tiene una orden de trabajo válida." });
-          return;
-        }
-        const { data: trabajo, error: trabajoError } = await response.locals.supabase
-          .from("trabajos")
-          .select("id, tecnico_id")
-          .eq("id", trabajoId)
-          .maybeSingle();
-        if (trabajoError) throw trabajoError;
-        if (!trabajo) {
-          response.status(409).json({ error: "La orden de esta evidencia no existe o pertenece a otro técnico." });
-          return;
-        }
+    const operations = z.array(syncOperationSchema).max(50).parse(request.body);
+    const { data, error } = await response.locals.supabase.rpc("sync_trabajos", {
+      p_operations: operations,
+    });
+    if (error) {
+      if (error.code === "P0001" || error.code === "23514") {
+        response.status(409).json({ error: error.message });
+        return;
       }
-      const query = operation.operation === "UPDATE"
-        ? response.locals.supabase.from(table).update(operation.payload).eq("id", operation.entity_id)
-        : table === "evidencias"
-          ? response.locals.supabase.from(table).insert(operation.payload)
-          : response.locals.supabase.from(table).insert({ id: operation.entity_id, ...operation.payload });
-      const { error } = await query;
-      if (error) throw error;
-      results.push({ id: operation.id, synced: true });
+      throw error;
     }
-
-    response.json({ results });
+    response.json(data);
   } catch (error) { next(error); }
 });
 
@@ -279,6 +280,9 @@ function crudRoutes(path: string, table: "clientes" | "trabajos", schema: z.ZodO
     try {
       const search = typeof request.query.search === "string" ? request.query.search : "";
       let query = response.locals.supabase.from(table).select("*").order("created_at", { ascending: false });
+      // Los clientes INACTIVO (soft delete) no se muestran en el listado: siguen
+      // en la base para no perder el historial de órdenes que los referencian.
+      if (table === "clientes") query = query.eq("estado", "ACTIVO");
       if (search) query = query.ilike(table === "clientes" ? "nombre" : "descripcion", `%${search}%`);
       const { data, error } = await query;
       if (error) throw error;
@@ -302,6 +306,7 @@ function crudRoutes(path: string, table: "clientes" | "trabajos", schema: z.ZodO
         }
         values = {
           ...input,
+          estado: "ASIGNADO",
           cliente: client.nombre,
           tecnico_id: input.tecnico_id ?? response.locals.user.id,
         };
@@ -325,6 +330,59 @@ function crudRoutes(path: string, table: "clientes" | "trabajos", schema: z.ZodO
   app.patch(`${path}/:id`, async (request, response, next) => {
     try {
       const input = parse(patchSchema(schema), request.body);
+      if (table === "trabajos" && typeof input.estado === "string") {
+        const { data: trabajo, error: lookupError } = await response.locals.supabase
+          .from("trabajos")
+          .select("id, estado, reporte")
+          .eq("id", request.params.id)
+          .maybeSingle();
+        if (lookupError) throw lookupError;
+        if (!trabajo) {
+          response.status(404).json({ error: "La orden no existe." });
+          return;
+        }
+        if (!esTransicionTrabajoValida(trabajo.estado, input.estado as EstadoTrabajoServidor)) {
+          response.status(409).json({ error: `El servidor rechazó la transición de ${trabajo.estado} a ${input.estado}.` });
+          return;
+        }
+        if (input.estado === "COMPLETADO") {
+          const [firma, fotoAntes, fotoDespues] = await Promise.all([
+            tieneEvidenciaValida(response.locals.supabase, request.params.id, "FIRMA"),
+            tieneEvidenciaValida(response.locals.supabase, request.params.id, "FOTO_ANTES"),
+            tieneEvidenciaValida(response.locals.supabase, request.params.id, "FOTO_DESPUES"),
+          ]);
+          if (!firma) {
+            response.status(409).json({ error: "No se puede completar el trabajo sin una firma capturada y sincronizada." });
+            return;
+          }
+          if (!fotoAntes && !fotoDespues) {
+            response.status(409).json({ error: "No se puede completar el trabajo sin una fotografía sincronizada." });
+            return;
+          }
+        }
+        if (input.estado === "CERRADO" && trabajo.reporte !== "APROBADO") {
+          response.status(409).json({ error: "Solo se puede cerrar un trabajo con el reporte aprobado." });
+          return;
+        }
+        if (input.estado === "CANCELADO" && !(typeof input.motivo_cancelacion === "string" && input.motivo_cancelacion.trim())) {
+          response.status(400).json({ error: "Indica el motivo de cancelación del trabajo." });
+          return;
+        }
+        let query = response.locals.supabase
+          .from("trabajos")
+          .update(input)
+          .eq("id", request.params.id)
+          .eq("estado", trabajo.estado)
+          .select();
+        const { data, error } = await query.maybeSingle();
+        if (error) throw error;
+        if (!data) {
+          response.status(409).json({ error: "La orden cambió mientras se actualizaba. Actualízala e inténtalo de nuevo." });
+          return;
+        }
+        response.json(data);
+        return;
+      }
       const { data, error } = await response.locals.supabase.from(table).update(input).eq("id", request.params.id).select().single();
       if (error) throw error;
       response.json(data);
@@ -333,6 +391,26 @@ function crudRoutes(path: string, table: "clientes" | "trabajos", schema: z.ZodO
 
   app.delete(`${path}/:id`, async (request, response, next) => {
     try {
+      // Clientes: soft delete (estado = INACTIVO). No se borran para preservar
+      // la integridad referencial con las órdenes históricas.
+      // Órdenes (trabajos): hard delete; el admin elimina una orden mal creada
+      // y queda fuera del historial.
+      if (table === "clientes") {
+        const { data, error } = await response.locals.supabase
+          .from("clientes")
+          .update({ estado: "INACTIVO" })
+          .eq("id", request.params.id)
+          .eq("estado", "ACTIVO")
+          .select("id")
+          .maybeSingle();
+        if (error) throw error;
+        if (!data) {
+          response.status(404).json({ error: "El cliente no existe o ya estaba desactivado." });
+          return;
+        }
+        response.json({ deleted: true, id: data.id });
+        return;
+      }
       const { data, error } = await response.locals.supabase
         .from(table)
         .delete()
@@ -357,13 +435,35 @@ app.use((error: unknown, _request: Request, response: Response, _next: NextFunct
     response.status(400).json({ error: "Revisa los datos enviados.", details: error.issues });
     return;
   }
-  const candidate = error as { message?: unknown; code?: unknown; details?: unknown };
+  const candidate = error as {
+    message?: unknown;
+    code?: unknown;
+    details?: unknown;
+    name?: unknown;
+    status?: unknown;
+  };
   const rawMessage = typeof candidate.message === "string" ? candidate.message : "Error interno del servidor.";
   const code = typeof candidate.code === "string" ? candidate.code : "";
+  const errorName = typeof candidate.name === "string" ? candidate.name : "";
   console.error("API error", { code, message: rawMessage, details: candidate.details });
 
+  if (
+    errorName === "AuthApiError" &&
+    (code === "invalid_credentials" || rawMessage.toLowerCase().includes("invalid login credentials"))
+  ) {
+    response.status(401).json({ error: "El correo o la contraseña no son correctos." });
+    return;
+  }
+  if (errorName === "AuthApiError" && rawMessage.toLowerCase().includes("email not confirmed")) {
+    response.status(403).json({ error: "Confirma tu correo electrónico antes de iniciar sesión." });
+    return;
+  }
   if (code === "23505") {
     response.status(409).json({ error: "Ya existe un registro con esos datos." });
+    return;
+  }
+  if (code === "23514") {
+    response.status(409).json({ error: rawMessage });
     return;
   }
   if (code === "23503" || rawMessage.includes("violates foreign key constraint")) {
@@ -385,6 +485,6 @@ app.use((error: unknown, _request: Request, response: Response, _next: NextFunct
   response.status(500).json({ error: rawMessage });
 });
 
-app.listen(config.port, () => {
-  console.log(`Backend escuchando en http://localhost:${config.port}`);
+app.listen(config.port, "0.0.0.0", () => {
+  console.log(`Backend escuchando en http://0.0.0.0:${config.port}`);
 });

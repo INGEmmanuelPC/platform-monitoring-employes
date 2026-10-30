@@ -1,4 +1,4 @@
-import { apiRequest, apiUrl } from "./http";
+import { ApiRequestError, apiRequest, apiUrl } from "./http";
 import { supabase } from "./client";
 
 export type EntityName = "tecnicos" | "clientes" | "ordenes";
@@ -50,19 +50,38 @@ export function syncOperations(operations: SyncOperation[]) {
   });
 }
 
-export async function uploadEvidence(uri: string, type: "FOTO_ANTES" | "FOTO_DESPUES") {
+export async function uploadEvidence(uri: string, type: "FOTO_ANTES" | "FOTO_DESPUES", evidenceId: string) {
   const { data } = await supabase.auth.getSession();
   const form = new FormData();
   form.append("file", { uri, name: "evidencia.jpg", type: "image/jpeg" } as unknown as Blob);
-  const response = await fetch(`${apiUrl}/evidencias/upload`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${data.session?.access_token ?? ""}`,
-      "x-evidence-type": type,
-    },
-    body: form,
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body?.error ?? "No se pudo subir la evidencia.");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+  let response: Response;
+  try {
+    response = await fetch(`${apiUrl}/evidencias/upload`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${data.session?.access_token ?? ""}`,
+        "x-evidence-type": type,
+        "x-evidence-id": evidenceId,
+      },
+      body: form,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("La carga de evidencia tardó demasiado. Comprueba la conexión y vuelve a sincronizar.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new ApiRequestError(body?.error ?? `No se pudo subir la evidencia (HTTP ${response.status}).`, response.status);
+  }
+  if (typeof body?.path !== "string" || !body.path.trim()) {
+    throw new Error("El backend respondió sin la ruta de almacenamiento de la evidencia.");
+  }
   return body.path as string;
 }

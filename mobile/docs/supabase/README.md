@@ -8,6 +8,11 @@
 4. Copia todo el contenido de `001_schema_inicial.sql` y pulsa **Run**.
 5. Copia todo el contenido de `002_crud_backend.sql` y pulsa **Run**.
 6. Copia todo el contenido de `003_tecnicos_admin_rls.sql` y pulsa **Run**.
+7. Copia todo el contenido de `004_estado_cancelado.sql` y pulsa **Run** para aceptar `CANCELADO` en bases creadas antes de ese estado.
+8. Ejecuta `005_admin_gestiona_trabajos.sql` si tu instalación aún no la tiene.
+9. Antes de la demo, ejecuta `006_sync_atomico_y_cancelacion.sql` para instalar la cancelación con motivo y el RPC transaccional `sync_trabajos`.
+10. Ejecuta `007_storage_upsert_reintentos.sql` para permitir reintentos idempotentes de fotografías en la carpeta privada de cada técnico.
+11. Ejecuta `008_admin_ejecuta_trabajos.sql` si la cuenta administradora debe ejecutar trabajos desde Hoy. Esta migración conserva `tecnico_id`, permite al administrador leer y guardar evidencias bajo su sesión, y actualiza el RPC para aceptar las acciones de admin sin abrir el acceso del técnico a trabajos ajenos.
 
 Las migraciones crean:
 
@@ -19,6 +24,32 @@ Las migraciones crean:
 También crean el trigger que genera el perfil al registrar un usuario, índices,
 políticas RLS y el bucket privado `evidencias`. El acceso se restringe al usuario
 autenticado según las relaciones de propiedad de perfiles, trabajos y clientes.
+La migración 006 hace que cada lote de sincronización se aplique dentro de una
+transacción PostgreSQL y agrega un trigger que también valida cambios directos
+de estado en la base; el backend nuevo requiere estas protecciones para `/sync`.
+La migración 008 es necesaria para que la nueva vista operativa de Hoy permita a
+un administrador ejecutar una orden y sincronizar sus evidencias sin cambiar el
+técnico históricamente asignado.
+
+Para confirmar que 008 quedó instalada en el proyecto conectado, ejecuta:
+
+```sql
+select
+  position('private.is_admin()' in pg_get_functiondef('public.sync_trabajos(jsonb)'::regprocedure)) > 0 as rpc_admite_admin,
+  exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'evidencias'
+      and policyname = 'evidencias_select_admin' and cmd = 'SELECT'
+  ) as admin_puede_leer_evidencias,
+  exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'evidencias'
+      and policyname = 'evidencias_insert_admin' and cmd = 'INSERT'
+  ) as admin_puede_guardar_evidencias;
+```
+
+Las tres columnas deben devolver `true`. Ejecuta la consulta en el mismo
+proyecto Supabase al que apunta el backend desplegado.
 
 ## Administrador inicial y técnicos
 
@@ -69,6 +100,55 @@ where table_schema = 'public'
   and table_name in ('profiles', 'trabajos', 'evidencias', 'clientes')
 order by table_name;
 ```
+
+Comprueba si `004_estado_cancelado.sql` quedó aplicada en este proyecto. La
+consulta revisa la definición real de la restricción, no la presencia del archivo
+local:
+
+```sql
+select conname, pg_get_constraintdef(oid) as definicion
+from pg_constraint
+where conrelid = 'public.trabajos'::regclass
+  and conname = 'trabajos_estado_check';
+```
+
+La definición debe incluir `CANCELADO`. Para verificar 006, comprueba la
+columna, la función y el permiso para el rol autenticado:
+
+```sql
+select column_name
+from information_schema.columns
+where table_schema = 'public' and table_name = 'trabajos'
+  and column_name = 'motivo_cancelacion';
+
+select to_regprocedure('public.sync_trabajos(jsonb)') as funcion;
+
+select to_regprocedure('public.validar_transicion_trabajo()') as trigger_funcion;
+
+select tgname
+from pg_trigger
+where tgrelid = 'public.trabajos'::regclass
+  and tgname = 'validar_transicion_trabajo'
+  and not tgisinternal;
+
+select has_function_privilege('authenticated', 'public.sync_trabajos(jsonb)', 'EXECUTE') as ejecutable;
+
+select policyname, roles, cmd, qual, with_check
+from pg_policies
+where schemaname = 'storage'
+  and tablename = 'objects'
+  and policyname = 'evidencias_storage_update';
+```
+
+La política `evidencias_storage_update` debe existir para que las cargas con
+`upsert: true` puedan reintentar sobre la misma ruta. Debe restringir tanto
+`USING` como `WITH CHECK` al bucket `evidencias` y a la carpeta cuyo primer
+segmento coincide con `auth.uid()`.
+
+No se debe llamar `sync_trabajos` a mano con datos reales para probar el
+permiso: usa los fixtures controlados de `postman/README.md`. Esta auditoría no
+tuvo credenciales verificables del proyecto remoto y, por tanto, no confirma el
+resultado de estas consultas ni aplica migraciones remotas.
 
 Para revisar usuarios y perfiles:
 

@@ -1,2 +1,5 @@
-import { EntityFormScreen } from "@/components/EntityScreens";
-export default function NuevoClienteScreen() { return <EntityFormScreen entity="clientes" edit={false} />; }
+import { EntityFormScreen } from "@/src/screens/crud/EntityFormScreen";
+
+export default function NuevoClienteScreen() {
+  return <EntityFormScreen entity="clientes" edit={false} />;
+}

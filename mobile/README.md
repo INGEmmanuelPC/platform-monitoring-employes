@@ -13,7 +13,7 @@ cuando la conectividad es intermitente.
 - Refresco de trabajos desde Supabase cuando hay conectividad.
 - Registro local de llegada con hora y cola de sincronizacion.
 - Captura local de evidencias fotográficas antes y después, con subida diferida.
-- Notas de servicio y captura local de trazos de firma SVG.
+- Notas de servicio y captura de firmas como documentos SVG en SQLite.
 - CRUD autenticado de técnicos, clientes y órdenes de trabajo.
 - Políticas RLS para proteger perfiles, trabajos, clientes y evidencias.
 
@@ -105,8 +105,10 @@ agregar el preset heredado `nativewind/babel`.
   `docs/supabase/001_schema_inicial.sql`.
 4. Ejecuta `docs/supabase/002_crud_backend.sql` para habilitar los tres CRUD,
   las relaciones de clientes y el bucket privado de evidencias.
-5. Configura la confirmacion de correo segun el entorno.
-6. Crea un usuario desde la aplicacion o desde **Authentication > Users**.
+5. Si el proyecto ya tenía el esquema anterior, ejecuta
+  `docs/supabase/004_estado_cancelado.sql` para permitir `CANCELADO`.
+6. Configura la confirmacion de correo segun el entorno.
+7. Crea un usuario desde la aplicacion o desde **Authentication > Users**.
 
 El esquema crea las tablas `profiles`, `trabajos`, `evidencias` y `clientes`,
 relacionadas con `auth.users`. También crea triggers, índices, un bucket privado
@@ -127,7 +129,7 @@ que solo puede contener variables con prefijo `EXPO_PUBLIC_`:
 ```env
 EXPO_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=tu-clave-publica
-EXPO_PUBLIC_API_URL=http://localhost:3000
+EXPO_PUBLIC_API_URL=https://platform-monitoring-employes.onrender.com
 ```
 
 Puedes obtenerlos en **Project Settings > API**:
@@ -135,9 +137,11 @@ Puedes obtenerlos en **Project Settings > API**:
 - **Project URL** -> `EXPO_PUBLIC_SUPABASE_URL`
 - **Publishable key** o antigua **anon key** -> `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 
-`EXPO_PUBLIC_API_URL` debe apuntar al servidor backend. En un celular físico no
-uses `localhost`: reemplázalo por la IP LAN del computador que ejecuta el
-backend, por ejemplo `http://192.168.1.20:3000`.
+`EXPO_PUBLIC_API_URL` debe apuntar al backend. Para el APK y pruebas desde redes
+externas, usa la URL HTTPS pública de Render:
+`https://platform-monitoring-employes.onrender.com`. Para desarrollo con un
+backend local, puede apuntar a `http://<IP-LAN-del-computador>:3000`; no uses
+`localhost` en un teléfono físico.
 
 Nunca uses `service_role`, claves secretas, contraseñas ni tokens privados en
 la aplicación móvil. `.env.local` está excluido de Git.
@@ -169,16 +173,20 @@ where email = 'tu-correo@ejemplo.com';
 
 ## Ejecutar
 
-Inicia el servidor de desarrollo:
+Desde la raíz del repositorio, en la primera terminal inicia el backend.
+Escucha en todas las interfaces de red (`0.0.0.0`) para aceptar conexiones
+desde un celular en la misma Wi-Fi:
 
-```bash
-npx expo start
+```powershell
+Set-Location .\backend
+npm run dev
 ```
 
-Para limpiar la cache:
+En otra terminal, también desde la raíz, arranca Expo limpiando la caché:
 
-```bash
-npx expo start -c
+```powershell
+Set-Location .\mobile
+npx expo start --clear
 ```
 
 Opciones de prueba:
@@ -186,6 +194,9 @@ Opciones de prueba:
 - Presiona `a` para abrir en un emulador Android configurado.
 - Escanea el QR desde Expo Go en un dispositivo movil.
 - Usa `npx expo start --tunnel` si la red local no permite conexiones LAN.
+- `npm start -- --clear` conserva una `EXPO_PUBLIC_API_URL` HTTPS configurada.
+  Para cambiar explícitamente a un backend local, ejecuta primero
+  `npm run sync-ip`; el script no reemplaza URLs HTTPS.
 
 Despues de cambiar `.env.local`, reinicia Expo para que las variables se
 carguen nuevamente.
@@ -237,7 +248,7 @@ demás rutas requieren `Authorization: Bearer <access_token>`.
 | Ruta | Operaciones implementadas |
 | --- | --- |
 | `/auth/logout` | `POST` para cerrar sesión en el cliente. |
-| `/sync` | `POST` para procesar hasta 50 operaciones locales de trabajos o evidencias. |
+| `/sync` | `POST` para procesar hasta 50 operaciones locales de trabajos o evidencias mediante el RPC transaccional `sync_trabajos` (migración Supabase 006). |
 | `/evidencias/upload` | `POST` multipart para subir una imagen al bucket privado. |
 | `/tecnicos` | `GET`, `POST`, `GET /:id`, `PATCH /:id`, `DELETE /:id` (baja lógica del perfil permitido por RLS). |
 | `/clientes` | `GET`, `POST`, `GET /:id`, `PATCH /:id`, `DELETE /:id`. |
@@ -245,28 +256,38 @@ demás rutas requieren `Authorization: Bearer <access_token>`.
 
 La API valida la sesión con Supabase, crea un cliente por solicitud con el
 token Bearer y deja que las políticas RLS apliquen sobre PostgreSQL y Storage.
+Las transiciones del servidor se comparan con el estado persistido. Completar
+requiere una firma SVG con trazo sincronizada y al menos una foto; cerrar requiere
+reporte aprobado; cancelar requiere motivo.
 
 ## Flujo de prueba
 
 ```text
 Registro -> Confirmacion de correo -> Inicio de sesion
-    -> Trabajo asignado -> Marcar llegada
-    -> Foto antes -> Foto despues
+    -> Trabajo ASIGNADO -> Voy en camino -> Marcar llegada
+    -> Foto -> Nota -> Firma SVG -> Trabajo COMPLETADO
 ```
 
-El registro de llegada y las fotografias se guardan primero en SQLite. El
-tecnico no debe quedar bloqueado por una perdida de conectividad.
+La llegada y las evidencias se guardan primero en SQLite. La firma SVG, el
+cambio a `COMPLETADO` y sus elementos de sincronización se escriben en una sola
+transacción, después de validar las guardas de la máquina de estados. El técnico
+no debe quedar bloqueado por una pérdida de conectividad.
 
 ## Sincronización
 
-SQLite es la fuente de lectura inmediata del técnico. Al marcar llegada,
-guardar una nota, evidencia, firma o finalización, la app actualiza primero la
-base local y encola una operación. Al enfocar las pantallas de trabajos y al
-usar el botón de sincronización, intenta enviar la cola a la API; las fotos
-locales se suben antes al bucket privado y luego se registra su ruta.
+SQLite es la fuente de lectura inmediata del técnico. Al marcar que va en
+camino o llegada, guardar una nota o evidencia, o finalizar un trabajo, la app
+actualiza primero la base local y encola operaciones. Al enfocar las pantallas
+de trabajos y al usar el botón de sincronización, intenta enviar la cola a la
+API; las fotos locales se suben antes al bucket privado y luego se registra su
+ruta.
 
-Un fallo de red no bloquea esas acciones locales. La cola aún no tiene un
-planificador en segundo plano ni pruebas automáticas de reintentos/conflictos.
+Un fallo de red no bloquea esas acciones locales ni oculta la copia leída de
+SQLite. La cola se envía por lotes atómicos y una respuesta de conflicto conserva
+las operaciones pendientes y marca el trabajo `CONFLICTO`. Las fotografías se
+suben con una ruta estable para que un reintento no cree otro objeto remoto.
+Sigue pendiente probar el modo avión y la recuperación de conexión en un
+dispositivo físico.
 
 ## Validación y pruebas
 
@@ -274,6 +295,7 @@ planificador en segundo plano ni pruebas automáticas de reintentos/conflictos.
 # Ejecutar desde mobile/
 npx tsc --noEmit
 npm run lint
+npm test
 npx expo export --platform android
 
 # Ejecutar desde backend/ en otra terminal
@@ -283,22 +305,27 @@ npm run typecheck
 Cada módulo revisa lo suyo con su propia configuración de TypeScript. Consulta
 `../backend/README.md` para la configuración del servidor.
 
-Tambien se recomienda probar el flujo principal con el dispositivo en modo
-avion despues de haber cargado los datos locales.
-
-No hay suite de pruebas automatizadas configurada actualmente. La validación
-manual con Supabase y en un dispositivo físico sigue siendo necesaria para los
-flujos de cámara, sincronización y autenticación.
+Las suites `node:test` cubren las transiciones móviles y del servidor, las
+guardas de firma SVG y el mapeo de errores de autenticación. Los comandos que se
+ejecutaron y sus resultados están registrados en
+`docs/entrega-tecnicos-campo.md`. La validación manual con Supabase y en un
+dispositivo físico sigue pendiente.
 
 ## Estructura
 
 ```text
 mobile/
-  app/                Rutas Expo Router
+  app/                Rutas Expo Router (solo enrutamiento)
   src/
-    components/       Componentes visuales reutilizables
+    screens/          Pantallas por área: auth, tecnico, trabajo, cuenta, crud
+      <área>/
+        components/   Piezas de presentación propias
+        hooks/        Lógica extraída (useLogin, useRegister, useEntityForm, useEntityList, useEntityDelete, useSyncQueue, etc.)
+    components/       Componentes visuales reutilizables entre áreas
+    navigation/       Tabs y Stack del técnico
+    providers/        Proveedores globales de la app
     constants/        Estados y etiquetas del dominio
-    hooks/            Hooks globales activos
+    hooks/            Hooks transversales (use-color-scheme, etc.)
     api/              Cliente Supabase y servicio de autenticacion
     data/             SQLite, repositorios y datos locales
     session/          Sesion y proteccion de rutas
@@ -341,6 +368,9 @@ Implementado y validado por compilación/arranque:
   Supabase Auth (`auth.admin.inviteUserByEmail`); solo un perfil con
   `role = 'admin'` puede crear, modificar o desactivar técnicos, reforzado en
   backend (`requireAdmin`) y en RLS (`private.is_admin()`).
+- Hooks de pantallas extraídos a `src/screens/**/hooks/`: `useLogin`,
+  `useRegister`, `useEntityForm`, `useEntityList`, `useEntityDelete`,
+  `useSyncQueue` y los hooks del flujo de trabajo de servicio.
 - Subida diferida de evidencias mediante Storage.
 - Identidad de marca (nombre "Cuadrilla", eslogan, logo con transparencia
   real, tipografía Archivo/IBM Plex Sans) aplicada en login, registro, splash

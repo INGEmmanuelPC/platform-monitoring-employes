@@ -8,7 +8,8 @@ export type EstadoTrabajo =
   | "EN_CAMINO"
   | "EN_SITIO"
   | "COMPLETADO"
-  | "CERRADO";
+  | "CERRADO"
+  | "CANCELADO";
 
 export type EstadoSync = "SOLO_LOCAL" | "EN_COLA" | "SINCRONIZADO" | "CONFLICTO";
 
@@ -26,6 +27,7 @@ export const ETIQUETA_TRABAJO: Record<EstadoTrabajo, string> = {
   EN_SITIO: "En sitio",
   COMPLETADO: "Terminado",
   CERRADO: "Cerrado",
+  CANCELADO: "Cancelado",
 };
 
 export const ETIQUETA_SYNC: Record<EstadoSync, string> = {
@@ -34,6 +36,21 @@ export const ETIQUETA_SYNC: Record<EstadoSync, string> = {
   SINCRONIZADO: "Subido",
   CONFLICTO: "Revisar",
 };
+
+export const ETIQUETA_REPORTE: Record<EstadoReporte, string> = {
+  SIN_AUDIO: "Sin audio",
+  AUDIO_LISTO: "Audio listo",
+  TRANSCRIBIENDO: "Transcribiendo",
+  BORRADOR: "Borrador",
+  APROBADO: "Aprobado",
+  ENTREGADO: "Entregado",
+};
+
+export const ETIQUETA_EJE_ESTADO = {
+  trabajo: "Trabajo",
+  sync: "Sync",
+  reporte: "Reporte",
+} as const;
 
 export function formatHora(horaProgramada: string | null) {
   if (!horaProgramada) {

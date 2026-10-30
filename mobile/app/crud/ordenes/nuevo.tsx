@@ -1,2 +1,5 @@
-import { EntityFormScreen } from "@/components/EntityScreens";
-export default function NuevaOrdenScreen() { return <EntityFormScreen entity="ordenes" edit={false} />; }
+import { EntityFormScreen } from "@/src/screens/crud/EntityFormScreen";
+
+export default function NuevaOrdenScreen() {
+  return <EntityFormScreen entity="ordenes" edit={false} />;
+}

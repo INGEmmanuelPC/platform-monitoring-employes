@@ -44,7 +44,7 @@ create table if not exists public.trabajos (
   descripcion text not null default '',
   hora_programada timestamptz,
   estado text not null default 'ASIGNADO'
-    check (estado in ('ASIGNADO', 'EN_CAMINO', 'EN_SITIO', 'COMPLETADO', 'CERRADO')),
+    check (estado in ('ASIGNADO', 'EN_CAMINO', 'EN_SITIO', 'COMPLETADO', 'CERRADO', 'CANCELADO')),
   sync text not null default 'SINCRONIZADO'
     check (sync in ('SOLO_LOCAL', 'EN_COLA', 'SINCRONIZADO', 'CONFLICTO')),
   reporte text not null default 'SIN_AUDIO'

@@ -1,2 +1,5 @@
-import { EntityDetailScreen } from "@/components/EntityScreens";
-export default function TecnicoDetailScreen() { return <EntityDetailScreen entity="tecnicos" />; }
+import { EntityDetailScreen } from "@/src/screens/crud/EntityDetailScreen";
+
+export default function TecnicoDetailScreen() {
+  return <EntityDetailScreen entity="tecnicos" />;
+}

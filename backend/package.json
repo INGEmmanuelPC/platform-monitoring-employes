@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/trabajo-state.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",
