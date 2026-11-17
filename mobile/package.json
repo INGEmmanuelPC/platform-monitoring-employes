@@ -10,7 +10,7 @@
     "ios": "node scripts/ensure-port-8081.js && expo start --ios --port 8081",
     "web": "node scripts/ensure-port-8081.js && expo start --web --port 8081",
     "lint": "expo lint",
-    "test": "node --test tests/estadoTrabajo.test.mjs tests/auth-errors.test.mjs tests/trabajos-query.test.mjs tests/sync-error.test.mjs"
+    "test": "node --test tests/estadoTrabajo.test.mjs tests/auth-errors.test.mjs tests/trabajos-query.test.mjs tests/sync-error.test.mjs tests/notificaciones.test.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/archivo": "^0.4.2",
@@ -28,6 +28,7 @@
     "expo-image": "~3.0.11",
     "expo-image-picker": "~17.0.11",
     "expo-linking": "~8.0.12",
+    "expo-notifications": "~0.32.17",
     "expo-router": "~6.0.24",
     "expo-secure-store": "~15.0.8",
     "expo-splash-screen": "~31.0.13",
