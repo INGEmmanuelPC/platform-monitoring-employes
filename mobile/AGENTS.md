@@ -74,12 +74,13 @@ El equipo desarrolla en **Expo Go**, y eso bloquea cosas:
 | Capacidad | Expo Go | Consecuencia |
 |---|---|---|
 | `expo-sqlite`, cámara, ubicación en primer plano | Sí | Todo el núcleo funciona |
-| **Notificaciones push remotas** | **No** (Android, desde SDK 53) | El técnico **no recibe push**: abre la app y ella sincroniza. Modelo de jalar, no de empujar. |
+| **Notificaciones push remotas** | **No** (Android, desde SDK 53) | En Expo Go el técnico no recibe push: abre la app y ella sincroniza. El push solo llega en un APK (ADR 0009). |
 | **Ubicación en segundo plano** | **No** | No hay rastreo continuo. Se capturan coordenadas **por evento**: llegada y salida. |
 | Tareas en segundo plano | Parcial | La sincronización automática no puede depender de esto todavía |
 
-No propongas notificaciones push ni rastreo en vivo: no funcionan en el entorno
-actual y ya fue una decisión documentada, no un olvido.
+**Rastreo en vivo:** no lo propongas, no funciona en el entorno actual.
+**Push remoto:** implementado en el ADR 0009 y desactivado a propósito en Expo Go
+de Android. Solo funciona en un APK/development build con FCM configurado.
 
 ## Estado actual del código
 

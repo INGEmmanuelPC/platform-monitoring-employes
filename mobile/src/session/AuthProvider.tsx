@@ -2,6 +2,7 @@ import type { Session } from "@supabase/supabase-js";
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from "react";
 
 import { logout } from "@/src/api/auth";
+import { savePushToken } from "@/src/api/push";
 import { supabase } from "@/src/api/client";
 
 export type ProfileRole = "admin" | "tecnico";
@@ -98,6 +99,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [session?.user.id]);
 
   const signOut = async () => {
+    // Antes de cerrar sesión: después ya no hay token de sesión para avisar al
+    // servidor. Sin red se cierra igual (regla 1).
+    await savePushToken(null).catch(() => undefined);
     await logout();
   };
 

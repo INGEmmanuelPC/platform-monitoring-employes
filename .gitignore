@@ -24,3 +24,5 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+# Claves de cuenta de servicio de Firebase (FCM): nunca se versionan
+*firebase-adminsdk*.json

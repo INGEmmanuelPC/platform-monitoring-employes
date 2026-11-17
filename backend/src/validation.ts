@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { FORMATO_TOKEN_EXPO } from "./notificaciones.js";
+
 export const credentialsSchema = z.object({
   email: z.string().trim().email().max(160),
   password: z.string().min(6).max(128),
@@ -94,3 +96,8 @@ export const patchSchema = <T extends z.ZodObject<Record<string, z.ZodTypeAny>>>
   schema.partial().refine((value) => Object.keys(value).length > 0, {
     message: "Envía al menos un cambio.",
   });
+
+// null = el teléfono deja de recibir avisos (cierre de sesión).
+export const tokenPushSchema = z.object({
+  token: z.string().trim().max(200).regex(FORMATO_TOKEN_EXPO, "El token push no tiene el formato de Expo.").nullable(),
+}).strict();

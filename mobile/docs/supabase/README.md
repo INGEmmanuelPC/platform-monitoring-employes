@@ -14,6 +14,8 @@
 10. Ejecuta `007_storage_upsert_reintentos.sql` para permitir reintentos idempotentes de fotografías en la carpeta privada de cada técnico.
 11. Ejecuta `008_admin_ejecuta_trabajos.sql` si la cuenta administradora debe ejecutar trabajos desde Hoy. Esta migración conserva `tecnico_id`, permite al administrador leer y guardar evidencias bajo su sesión, y actualiza el RPC para aceptar las acciones de admin sin abrir el acceso del técnico a trabajos ajenos.
 
+12. Ejecuta `009_tokens_push.sql` para crear `push_tokens` (tokens de notificaciones push; solo el backend la lee y escribe).
+
 Las migraciones crean:
 
 - `profiles`: perfil ligado a `auth.users`.

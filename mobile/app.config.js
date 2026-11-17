@@ -5,6 +5,8 @@ module.exports = ({ config }) => ({
  android: {
    ...(config.android ?? {}),
    package: "com.icxrvajals.platformmonitoringemployes",
+   // Necesario para recibir push (FCM). Solo se usa al compilar el APK; Expo Go lo ignora.
+   googleServicesFile: "./google-services.json",
  },
  plugins: [...(config.plugins ?? []), "expo-sqlite"],
  extra: {

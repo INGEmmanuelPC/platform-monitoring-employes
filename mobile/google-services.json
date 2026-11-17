@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "906831460064",
+    "project_id": "teak-catalyst-488201-j9",
+    "storage_bucket": "teak-catalyst-488201-j9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:906831460064:android:37e6d09231af8f9f188285",
+        "android_client_info": {
+          "package_name": "com.icxrvajals.platformmonitoringemployes"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTSfdOZuRML1d0DnVu7KSHxmL0Ohgw6Pg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

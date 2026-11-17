@@ -4,6 +4,8 @@ import multer from "multer";
 import { z, type ZodError } from "zod";
 
 import { config } from "./config.js";
+import { avisoPorCambioDeEstado, NotificadorExpoPush, type CambioDeEstado } from "./notificaciones.js";
+import { AlmacenTokensPushSupabase } from "./push-tokens.js";
 import { createAdminClient, createRequestClient } from "./supabase.js";
 import { esFirmaSvgValida, esTransicionTrabajoValida, type EstadoTrabajoServidor } from "./trabajo-state.js";
 import {
@@ -14,8 +16,27 @@ import {
   registerSchema,
   syncOperationSchema,
   tecnicoCreateSchema,
+  tokenPushSchema,
   tecnicoUpdateSchema,
 } from "./validation.js";
+
+const tokensPush = new AlmacenTokensPushSupabase();
+const notificador = new NotificadorExpoPush(tokensPush, process.env.EXPO_ACCESS_TOKEN);
+
+// Avisa según el cambio de estado. Nunca lanza: el cambio ya se guardó y un
+// aviso fallido no debe convertir la respuesta en un error.
+async function avisarCambioDeEstado(cambio: CambioDeEstado) {
+  try {
+    const decision = avisoPorCambioDeEstado(cambio);
+    if (!decision) return;
+    const destinatarios = decision.destinatario === "tecnico"
+      ? [cambio.tecnicoId]
+      : (await tokensPush.idsDeAdministradores()).filter((id) => id !== cambio.actorId);
+    await Promise.all(destinatarios.map((id) => notificador.avisar(id, decision.aviso)));
+  } catch (error) {
+    console.error("No se pudo preparar el aviso push:", error instanceof Error ? error.message : error);
+  }
+}
 
 const app = express();
 const apiRevision = "tecnicos-admin-r1";
@@ -136,6 +157,18 @@ app.post("/auth/logout", requireUser, async (_request, response) => {
 
 app.use(requireUser);
 
+// El id sale de la SESIÓN, nunca del cuerpo: si viniera del cuerpo, cualquiera
+// podría registrar su teléfono a nombre de otra persona y leer sus avisos.
+app.put("/auth/token-push", async (request, response, next) => {
+  try {
+    const { token } = parse(tokenPushSchema, request.body);
+    const userId = response.locals.user.id as string;
+    if (token) await tokensPush.guardarTokenPush(userId, token);
+    else await tokensPush.borrarTokenPush(userId);
+    response.status(204).end();
+  } catch (error) { next(error); }
+});
+
 app.post("/evidencias/upload", upload.single("file"), async (request, response, next) => {
   try {
     if (!request.file) {
@@ -166,6 +199,14 @@ app.post("/evidencias/upload", upload.single("file"), async (request, response, 
 app.post("/sync", async (request, response, next) => {
   try {
     const operations = z.array(syncOperationSchema).max(50).parse(request.body);
+    // Se lee el estado ANTES del RPC para poder comparar y avisar solo si cambió.
+    const idsTrabajos = [...new Set(operations.flatMap((op) => (op.entity === "trabajos" ? [op.entity_id] : [])))];
+    const antes = new Map<string, { estado: string; tecnico_id: string; cliente: string }>();
+    if (idsTrabajos.length > 0) {
+      const { data: previos } = await response.locals.supabase
+        .from("trabajos").select("id, estado, tecnico_id, cliente").in("id", idsTrabajos);
+      for (const fila of previos ?? []) antes.set(fila.id, fila);
+    }
     const { data, error } = await response.locals.supabase.rpc("sync_trabajos", {
       p_operations: operations,
     });
@@ -175,6 +216,21 @@ app.post("/sync", async (request, response, next) => {
         return;
       }
       throw error;
+    }
+    for (const op of operations) {
+      if (op.entity !== "trabajos") continue;
+      const previo = antes.get(op.entity_id);
+      if (!previo) continue;
+      await avisarCambioDeEstado({
+        trabajoId: op.entity_id,
+        cliente: previo.cliente,
+        tecnicoId: previo.tecnico_id,
+        estadoAnterior: previo.estado,
+        estadoNuevo: op.payload.estado,
+        actorId: response.locals.user.id,
+        actorRol: response.locals.profile.role,
+        motivoCancelacion: op.payload.motivo_cancelacion,
+      });
     }
     response.json(data);
   } catch (error) { next(error); }
@@ -315,6 +371,17 @@ function crudRoutes(path: string, table: "clientes" | "trabajos", schema: z.ZodO
       }
       const { data, error } = await response.locals.supabase.from(table).insert(values).select().single();
       if (error) throw error;
+      if (table === "trabajos") {
+        await avisarCambioDeEstado({
+          trabajoId: data.id,
+          cliente: data.cliente,
+          tecnicoId: data.tecnico_id,
+          estadoAnterior: null,
+          estadoNuevo: data.estado,
+          actorId: response.locals.user.id,
+          actorRol: response.locals.profile.role,
+        });
+      }
       response.status(201).json(data);
     } catch (error) { next(error); }
   });
@@ -380,6 +447,16 @@ function crudRoutes(path: string, table: "clientes" | "trabajos", schema: z.ZodO
           response.status(409).json({ error: "La orden cambió mientras se actualizaba. Actualízala e inténtalo de nuevo." });
           return;
         }
+        await avisarCambioDeEstado({
+          trabajoId: data.id,
+          cliente: data.cliente,
+          tecnicoId: data.tecnico_id,
+          estadoAnterior: trabajo.estado,
+          estadoNuevo: data.estado,
+          actorId: response.locals.user.id,
+          actorRol: response.locals.profile.role,
+          motivoCancelacion: data.motivo_cancelacion,
+        });
         response.json(data);
         return;
       }
