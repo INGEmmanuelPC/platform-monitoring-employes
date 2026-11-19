@@ -74,3 +74,13 @@ app (login, registro, splash), acordado en una conversación previa.
 - Verificado con `npx tsc --noEmit`, `npx expo lint` y
   `npx expo export --platform android`; no probado aún en modo avión en
   dispositivo físico (pendiente, como toda esta serie de cambios visuales).
+
+## Actualización (2026-11-19): ícono de la app
+
+El ícono de la app seguía siendo el de Expo por defecto. Ahora `icon.png`,
+`android-icon-foreground.png`, `android-icon-monochrome.png`, `favicon.png` y
+`notification-icon.png` se generan a partir de `logotype-navy.png` (el mismo
+logo del login). El ícono adaptable de Android usa fondo blanco
+(`backgroundColor`) en lugar de `android-icon-background.png`, que se eliminó.
+El ícono de notificación es una silueta blanca de 96 × 96 con color de acento
+`#1B4965`. Los cambios de ícono son nativos: requieren un APK nuevo.
