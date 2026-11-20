@@ -1,6 +1,7 @@
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { DESIGN } from "@/constants/design";
 import { type EntityName } from "@/src/api/entities";
 
@@ -20,9 +21,12 @@ export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: b
         contentContainerClassName="gap-4 p-4 pb-8"
         keyboardShouldPersistTaps="handled"
       >
-        <Text className="font-display text-2xl" style={{ color: DESIGN.colors.text }}>
-          {edit ? "Editar" : "Nuevo"} {definition.title.slice(0, -1)}
-        </Text>
+        <ScreenHeader
+          eyebrow={edit ? "Edición de registro / 03" : "Nueva orden / 03"}
+          title={`${edit ? "Editar" : "Nueva"} ${definition.title.slice(0, -1)}`}
+          subtitle="Completa la ficha técnica y guarda los cambios"
+          showBack
+        />
 
         {loading ? (
           <View className="items-center gap-3 rounded-xl p-6" style={{ backgroundColor: DESIGN.colors.surface }}>

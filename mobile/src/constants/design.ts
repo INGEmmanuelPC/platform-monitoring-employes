@@ -6,66 +6,142 @@ import type {
   EstadoTrabajo,
 } from "@/constants/trabajos";
 
-// Contrastes verificados contra WCAG 2.1 AA (mínimo 4.5:1 para texto normal).
-// La app se usa a pleno sol: los pares críticos quedan por encima de 5:1 para
-// que el técnico pueda leer la pantalla sin tener que buscar sombra.
-//   text #17313F        sobre surface #FFFFFF  → 13.2 : 1  (AAA)
-//   textSecondary #526A75 sobre surface #FFFFFF → 5.70 : 1  (AA)
-//   textSecondary #526A75 sobre canvas  #F3F6F7 → 5.15 : 1  (AA)
-//   disabledText #445760  sobre disabled #DCE5E9 → 5.27 : 1  (AA)
-//   brand #1B4965         sobre surface #FFFFFF → 9.43 : 1  (AAA)
-//   error #9F2020         sobre errorSurface #FCE9E8 → 6.21 : 1  (AA)
-// Si cambias un color, re-verifica el ratio: por debajo de 4.5:1 el texto no
-// pasa el requisito del documento de visión.
+// Industrial dark palette: graphite surfaces preserve hierarchy in the field,
+// while blue and amber accents make actions and operational states scannable.
+// Keep text and status pairs high-contrast when changing these tokens.
 export const DESIGN = {
   colors: {
-    canvas: "#F3F6F7",
-    surface: "#FFFFFF",
-    inset: "#F6F8F9",
-    brand: "#1B4965",
-    brandPressed: "#163B52",
-    dangerPressed: "#741717",
-    selected: "#E8F1F5",
-    text: "#17313F",
-    textSecondary: "#526A75",
-    border: "#CAD6DC",
-    borderSubtle: "#E3EBEF",
-    error: "#9F2020",
-    errorSurface: "#FCE9E8",
-    disabled: "#DCE5E9",
-    disabledText: "#445760",
-    backdrop: "rgba(15, 32, 42, 0.55)",
+    canvas: "#0B1117",
+    surface: "#131D27",
+    inset: "#0F1821",
+    brand: "#4BA3FF",
+    brandPressed: "#2F80D1",
+    dangerPressed: "#B53A3A",
+    selected: "#17324B",
+    text: "#F2F6F8",
+    textSecondary: "#A7B4BF",
+    border: "#2A3A48",
+    borderSubtle: "#20303D",
+    error: "#FF7B72",
+    errorSurface: "#3A1F22",
+    disabled: "#2A343D",
+    disabledText: "#8D9AA4",
+    backdrop: "rgba(3, 8, 13, 0.72)",
   },
   radius: {
-    control: 14,
-    card: 20,
+    control: 10,
+    card: 14,
     pill: 999,
   },
   status: {
     trabajo: {
-      ASIGNADO: { background: "#E8F1F5", foreground: "#1B4965", border: "#B9D1DC" },
-      EN_CAMINO: { background: "#E4F3FA", foreground: "#0D5278", border: "#B4D8E8" },
-      EN_SITIO: { background: "#FFF0CE", foreground: "#754500", border: "#E9D19A" },
-      COMPLETADO: { background: "#E5F3E9", foreground: "#1E5A36", border: "#B8D8C1" },
-      CERRADO: { background: "#EEF2F3", foreground: "#455A64", border: "#CDD7DB" },
-      CANCELADO: { background: "#FCE9E8", foreground: "#8E1B1B", border: "#E8B8B5" },
+      ASIGNADO: { background: "#17324B", foreground: "#8BC5FF", border: "#2B5B82" },
+      EN_CAMINO: { background: "#12384A", foreground: "#7DD3FC", border: "#26627A" },
+      EN_SITIO: { background: "#46351A", foreground: "#FFD166", border: "#80652A" },
+      COMPLETADO: { background: "#163B2A", foreground: "#7EE2A8", border: "#2C6B4A" },
+      CERRADO: { background: "#26313A", foreground: "#C6D0D8", border: "#465661" },
+      CANCELADO: { background: "#3A1F22", foreground: "#FF918A", border: "#74403E" },
     } satisfies Record<EstadoTrabajo, StatusColors>,
     sync: {
-      SOLO_LOCAL: { background: "#FFF0CE", foreground: "#754500", border: "#E9D19A" },
-      EN_COLA: { background: "#E4F3FA", foreground: "#0D5278", border: "#B4D8E8" },
-      SINCRONIZADO: { background: "#E5F3E9", foreground: "#1E5A36", border: "#B8D8C1" },
-      CONFLICTO: { background: "#FCE9E8", foreground: "#8E1B1B", border: "#E8B8B5" },
+      SOLO_LOCAL: { background: "#46351A", foreground: "#FFD166", border: "#80652A" },
+      EN_COLA: { background: "#12384A", foreground: "#7DD3FC", border: "#26627A" },
+      SINCRONIZADO: { background: "#163B2A", foreground: "#7EE2A8", border: "#2C6B4A" },
+      CONFLICTO: { background: "#3A1F22", foreground: "#FF918A", border: "#74403E" },
     } satisfies Record<EstadoSync, StatusColors>,
     reporte: {
-      SIN_AUDIO: { background: "#EEF2F3", foreground: "#455A64", border: "#CDD7DB" },
-      AUDIO_LISTO: { background: "#E4F3FA", foreground: "#0D5278", border: "#B4D8E8" },
-      TRANSCRIBIENDO: { background: "#F0EBF9", foreground: "#533E7A", border: "#D2C5E8" },
-      BORRADOR: { background: "#FFF0CE", foreground: "#754500", border: "#E9D19A" },
-      APROBADO: { background: "#E5F3E9", foreground: "#1E5A36", border: "#B8D8C1" },
-      ENTREGADO: { background: "#E8F1F5", foreground: "#1B4965", border: "#B9D1DC" },
+      SIN_AUDIO: { background: "#26313A", foreground: "#C6D0D8", border: "#465661" },
+      AUDIO_LISTO: { background: "#12384A", foreground: "#7DD3FC", border: "#26627A" },
+      TRANSCRIBIENDO: { background: "#302844", foreground: "#C7B4FF", border: "#5B4B7D" },
+      BORRADOR: { background: "#46351A", foreground: "#FFD166", border: "#80652A" },
+      APROBADO: { background: "#163B2A", foreground: "#7EE2A8", border: "#2C6B4A" },
+      ENTREGADO: { background: "#17324B", foreground: "#8BC5FF", border: "#2B5B82" },
     } satisfies Record<EstadoReporte, StatusColors>,
   },
 } as const;
+
+export const LIGHT_COLORS = {
+  canvas: "#E9EEF1",
+  surface: "#F8FAFB",
+  inset: "#DDE6EB",
+  brand: "#1B4965",
+  brandPressed: "#12364B",
+  dangerPressed: "#741717",
+  selected: "#DCEAF3",
+  text: "#152630",
+  textSecondary: "#526A75",
+  border: "#B5C5CE",
+  borderSubtle: "#D1DDE2",
+  error: "#9F2020",
+  errorSurface: "#FCE9E8",
+  disabled: "#D4DEE3",
+  disabledText: "#445760",
+  backdrop: "rgba(15, 32, 42, 0.55)",
+} as const;
+
+const LIGHT_STATUS = {
+  trabajo: {
+    ASIGNADO: { background: "#DCEAF3", foreground: "#1B4965", border: "#AFC7D5" },
+    EN_CAMINO: { background: "#D9EEF7", foreground: "#14516E", border: "#A8CFDF" },
+    EN_SITIO: { background: "#FFF0CE", foreground: "#754500", border: "#E9D19A" },
+    COMPLETADO: { background: "#DCEFE2", foreground: "#1E5A36", border: "#B5D6BF" },
+    CERRADO: { background: "#E4EAED", foreground: "#455A64", border: "#C5D0D5" },
+    CANCELADO: { background: "#FCE9E8", foreground: "#8E1B1B", border: "#E8B8B5" },
+  },
+  sync: {
+    SOLO_LOCAL: { background: "#FFF0CE", foreground: "#754500", border: "#E9D19A" },
+    EN_COLA: { background: "#D9EEF7", foreground: "#14516E", border: "#A8CFDF" },
+    SINCRONIZADO: { background: "#DCEFE2", foreground: "#1E5A36", border: "#B5D6BF" },
+    CONFLICTO: { background: "#FCE9E8", foreground: "#8E1B1B", border: "#E8B8B5" },
+  },
+  reporte: {
+    SIN_AUDIO: { background: "#E4EAED", foreground: "#455A64", border: "#C5D0D5" },
+    AUDIO_LISTO: { background: "#D9EEF7", foreground: "#14516E", border: "#A8CFDF" },
+    TRANSCRIBIENDO: { background: "#EEE8F8", foreground: "#533E7A", border: "#D2C5E8" },
+    BORRADOR: { background: "#FFF0CE", foreground: "#754500", border: "#E9D19A" },
+    APROBADO: { background: "#DCEFE2", foreground: "#1E5A36", border: "#B5D6BF" },
+    ENTREGADO: { background: "#DCEAF3", foreground: "#1B4965", border: "#AFC7D5" },
+  },
+} as const;
+
+const DARK_STATUS = {
+  trabajo: {
+    ASIGNADO: { background: "#17324B", foreground: "#8BC5FF", border: "#2B5B82" },
+    EN_CAMINO: { background: "#12384A", foreground: "#7DD3FC", border: "#26627A" },
+    EN_SITIO: { background: "#46351A", foreground: "#FFD166", border: "#80652A" },
+    COMPLETADO: { background: "#163B2A", foreground: "#7EE2A8", border: "#2C6B4A" },
+    CERRADO: { background: "#26313A", foreground: "#C6D0D8", border: "#465661" },
+    CANCELADO: { background: "#3A1F22", foreground: "#FF918A", border: "#74403E" },
+  },
+  sync: {
+    SOLO_LOCAL: { background: "#46351A", foreground: "#FFD166", border: "#80652A" },
+    EN_COLA: { background: "#12384A", foreground: "#7DD3FC", border: "#26627A" },
+    SINCRONIZADO: { background: "#163B2A", foreground: "#7EE2A8", border: "#2C6B4A" },
+    CONFLICTO: { background: "#3A1F22", foreground: "#FF918A", border: "#74403E" },
+  },
+  reporte: {
+    SIN_AUDIO: { background: "#26313A", foreground: "#C6D0D8", border: "#465661" },
+    AUDIO_LISTO: { background: "#12384A", foreground: "#7DD3FC", border: "#26627A" },
+    TRANSCRIBIENDO: { background: "#302844", foreground: "#C7B4FF", border: "#5B4B7D" },
+    BORRADOR: { background: "#46351A", foreground: "#FFD166", border: "#80652A" },
+    APROBADO: { background: "#163B2A", foreground: "#7EE2A8", border: "#2C6B4A" },
+    ENTREGADO: { background: "#17324B", foreground: "#8BC5FF", border: "#2B5B82" },
+  },
+} as const;
+
+export function applyAppearance(mode: "light" | "dark") {
+  const colors = mode === "dark" ? {
+    canvas: "#0B1117", surface: "#131D27", inset: "#0F1821", brand: "#4BA3FF",
+    brandPressed: "#2F80D1", dangerPressed: "#B53A3A", selected: "#17324B",
+    text: "#F2F6F8", textSecondary: "#A7B4BF", border: "#2A3A48",
+    borderSubtle: "#20303D", error: "#FF7B72", errorSurface: "#3A1F22",
+    disabled: "#2A343D", disabledText: "#8D9AA4", backdrop: "rgba(3, 8, 13, 0.72)",
+  } : LIGHT_COLORS;
+  Object.assign(DESIGN.colors, colors);
+  const status = mode === "light" ? LIGHT_STATUS : DARK_STATUS;
+  Object.assign(DESIGN.status.trabajo, status.trabajo);
+  Object.assign(DESIGN.status.sync, status.sync);
+  Object.assign(DESIGN.status.reporte, status.reporte);
+}
 
 type StatusColors = {
   background: string;
@@ -95,12 +171,12 @@ export const MIN_HIT_SLOP = { top: 8, right: 8, bottom: 8, left: 8 } as const;
 export const RAISED_SURFACE =
   Platform.OS === "ios"
     ? ({
-        shadowColor: "#17313F",
+        shadowColor: "#000000",
         shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.14,
+        shadowOpacity: 0.34,
         shadowRadius: 4,
       } as const)
     : ({
         elevation: 3,
-        shadowColor: "#17313F",
+        shadowColor: "#000000",
       } as const);

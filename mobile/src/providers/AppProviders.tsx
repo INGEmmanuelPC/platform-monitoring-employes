@@ -14,18 +14,18 @@ import { PropsWithChildren, useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { initializeDatabase } from "@/src/data/database";
 import { AuthProvider } from "@/src/session/AuthProvider";
 import { RouteGuard } from "@/src/session/RouteGuard";
 import { AppAlertProvider } from "@/components/AppAlert";
+import { AppearanceProvider, useAppearance } from "@/src/theme/AppearanceProvider";
+import { applyAppearance } from "@/constants/design";
 
 import "@/global.css";
 
 SplashScreen.preventAutoHideAsync();
 
 export function AppProviders({ children }: PropsWithChildren) {
-  const colorScheme = useColorScheme();
   const [fontsLoaded, fontsError] = useFonts({
     Archivo_700Bold,
     IBMPlexSans_400Regular,
@@ -43,15 +43,25 @@ export function AppProviders({ children }: PropsWithChildren) {
   }
 
   return (
+    <AppearanceProvider>
+      <ThemedProviders>{children}</ThemedProviders>
+    </AppearanceProvider>
+  );
+}
+
+function ThemedProviders({ children }: PropsWithChildren) {
+  const { mode } = useAppearance();
+  applyAppearance(mode);
+  return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AppAlertProvider>
         <AuthProvider>
           <SQLiteProvider databaseName="empleados.db" onInit={initializeDatabase}>
-            <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+            <ThemeProvider value={mode === "dark" ? DarkTheme : DefaultTheme}>
               <RouteGuard>
                 {children}
               </RouteGuard>
-              <StatusBar style="auto" />
+              <StatusBar style={mode === "dark" ? "light" : "dark"} />
             </ThemeProvider>
           </SQLiteProvider>
         </AuthProvider>

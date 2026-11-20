@@ -6,14 +6,12 @@ import { HapticTab } from "@/components/haptic-tab";
 import { IndicadorSync } from "@/components/indicador-sync";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Fonts } from "@/constants/fonts";
-import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { DESIGN } from "@/constants/design";
 import { AccountDrawer } from "@/src/screens/cuenta/AccountDrawer";
 
 import { DrawerToggleButton } from "./components/DrawerToggleButton";
 
 export default function TecnicoTabs() {
-  const colorScheme = useColorScheme();
   const pathname = usePathname();
   const [drawerVisible, setDrawerVisible] = useState(false);
 
@@ -23,12 +21,22 @@ export default function TecnicoTabs() {
     <View className="flex-1">
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+          tabBarActiveTintColor: DESIGN.colors.brand,
+          tabBarInactiveTintColor: DESIGN.colors.textSecondary,
           tabBarButton: HapticTab,
           headerLeft: () => <DrawerToggleButton onPress={() => setDrawerVisible(true)} />,
           headerRight: () => <IndicadorSync />,
           tabBarLabelStyle: { fontSize: 13, fontFamily: Fonts.button },
-          tabBarStyle: { height: 64, paddingTop: 6, paddingBottom: 8 },
+          headerStyle: { backgroundColor: DESIGN.colors.surface },
+          headerTintColor: DESIGN.colors.text,
+          headerTitleStyle: { fontFamily: Fonts.display, fontSize: 19 },
+          tabBarStyle: {
+            height: 72,
+            paddingTop: 8,
+            paddingBottom: 10,
+            backgroundColor: DESIGN.colors.surface,
+            borderTopColor: DESIGN.colors.border,
+          },
         }}
       >
         <Tabs.Screen

@@ -1,6 +1,7 @@
 import { ScrollView, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
+import { AppearanceControl } from "@/components/AppearanceControl";
 import { DESIGN } from "@/constants/design";
 import { useTrabajos } from "@/src/data/use-trabajos";
 import { useAuth } from "@/src/session/AuthProvider";
@@ -54,6 +55,7 @@ export function AccountContent() {
           </View>
         ) : null}
         <ManagementMenu />
+        <AppearanceControl />
         <Button text="Cerrar sesión" onPress={signOut} />
       </View>
     </ScrollView>
