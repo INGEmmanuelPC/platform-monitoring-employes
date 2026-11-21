@@ -147,6 +147,24 @@ interacción fue recibida. La animación se desactiva cuando el sistema solicita
 reducir movimiento. Los estados vacíos incluyen una señal visual discreta y
 centrada, sin convertir un estado informativo en una acción nueva.
 
+## Encabezados y nombres de pantalla
+
+Los encabezados visibles al usuario son títulos comerciales definidos por
+producto, no nombres derivados de carpetas o archivos de Expo Router.
+
+Los títulos de las rutas CRUD viven en `src/navigation/screenTitles.ts`.
+El Stack raíz configura esos títulos y oculta su header técnico nativo; las
+pantallas CRUD mantienen un único `ScreenHeader` reutilizable con botón de
+regreso, título y contexto profesional.
+
+Los nombres internos como `crud`, `index`, `nuevo`, `[id]` o nombres de
+componentes no deben aparecer en ningún header visible. Los títulos se mantienen
+consistentes con el CRUD:
+
+- Técnicos, Clientes y Órdenes de trabajo para los listados.
+- Nuevo técnico, Nuevo cliente y Nueva orden de trabajo para la creación.
+- Editar técnico, Editar cliente y Editar orden de trabajo para el detalle.
+
 ## Configuración
 
 `global.css` importa Tailwind v4 y el tema de NativeWind. Se carga una vez en

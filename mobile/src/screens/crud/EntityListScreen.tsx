@@ -26,7 +26,7 @@ export function EntityListScreen({ entity }: { entity: EntityName }) {
       refreshControl={<RefreshControl refreshing={loading} onRefresh={() => { reload(); }} />}
     >
       <View className="gap-4 p-4">
-        <ScreenHeader eyebrow="Módulo de administración / 02" title={definition.title} subtitle="Registros operativos y seguimiento" showBack />
+        <ScreenHeader eyebrow="Administración" title={definition.title} subtitle="Registros operativos y seguimiento" showBack />
         <View className="flex-row items-center justify-between">
           <Text className="font-mono text-[10px] uppercase" style={{ color: DESIGN.colors.textSecondary }}>{items.length} registros en sistema</Text>
           <Button text="Nuevo" onPress={() => router.push(createPaths[entity] as never)} />

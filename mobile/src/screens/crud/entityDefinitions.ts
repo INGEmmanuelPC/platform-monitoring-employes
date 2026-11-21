@@ -34,9 +34,10 @@ export function fieldRules(field: FieldDef): RegisterOptions<Record<string, stri
   return rules;
 }
 
-export const definitions: Record<EntityName, { title: string; fields: FieldDef[]; summary: (item: EntityRecord) => string }> = {
+export const definitions: Record<EntityName, { title: string; singular: string; fields: FieldDef[]; summary: (item: EntityRecord) => string }> = {
   tecnicos: {
     title: "Técnicos",
+    singular: "técnico",
     fields: [
       { key: "nombre", label: "Nombre", required: true, maxLength: 120 },
       { key: "telefono", label: "Teléfono", maxLength: 40 },
@@ -46,6 +47,7 @@ export const definitions: Record<EntityName, { title: string; fields: FieldDef[]
   },
   clientes: {
     title: "Clientes",
+    singular: "cliente",
     fields: [
       { key: "nombre", label: "Nombre", required: true, maxLength: 120 },
       { key: "email", label: "Correo", maxLength: 160 },
@@ -56,6 +58,7 @@ export const definitions: Record<EntityName, { title: string; fields: FieldDef[]
   },
   ordenes: {
     title: "Órdenes de trabajo",
+    singular: "orden de trabajo",
     fields: [
       { key: "cliente_id", label: "Cliente", required: true },
       { key: "tecnico_id", label: "Técnico", required: true },

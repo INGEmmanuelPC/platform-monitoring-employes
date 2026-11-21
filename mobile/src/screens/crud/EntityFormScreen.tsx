@@ -12,6 +12,11 @@ import { useEntityForm } from "./hooks/useEntityForm";
 export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: boolean }) {
   const definition = definitions[entity];
   const { fields, control, clients, technicians, error, loading, isSubmitting, submit } = useEntityForm(entity, edit);
+  const formTitle = edit
+    ? `Editar ${definition.singular}`
+    : entity === "ordenes"
+      ? "Nueva orden de trabajo"
+      : `Nuevo ${definition.singular}`;
 
   return (
     <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : "height"}>
@@ -22,8 +27,8 @@ export function EntityFormScreen({ entity, edit }: { entity: EntityName; edit: b
         keyboardShouldPersistTaps="handled"
       >
         <ScreenHeader
-          eyebrow={edit ? "Edición de registro / 03" : "Nueva orden / 03"}
-          title={`${edit ? "Editar" : "Nueva"} ${definition.title.slice(0, -1)}`}
+          eyebrow={edit ? "Administración · Editar" : "Administración · Crear"}
+          title={formTitle}
           subtitle="Completa la ficha técnica y guarda los cambios"
           showBack
         />
