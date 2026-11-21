@@ -48,3 +48,29 @@ export function ListSkeleton({ count = 3 }: { count?: number }) {
     </View>
   );
 }
+
+export function DetailSkeleton() {
+  return (
+    <View style={{ gap: 16 }}>
+      <View style={{ backgroundColor: DESIGN.colors.surface, borderColor: DESIGN.colors.border, borderRadius: DESIGN.radius.card, borderWidth: 1, gap: 14, padding: 16 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <Skeleton style={{ height: 12, width: "28%" }} />
+          <Skeleton style={{ height: 12, width: "32%" }} />
+        </View>
+        <Skeleton style={{ height: 28, width: "68%" }} />
+        <Skeleton style={{ height: 16, width: "88%" }} />
+        <Skeleton style={{ height: 14, width: "76%" }} />
+      </View>
+      {[0, 1, 2].map((index) => (
+        <View key={index} style={{ backgroundColor: DESIGN.colors.surface, borderColor: DESIGN.colors.border, borderRadius: DESIGN.radius.card, borderWidth: 1, flexDirection: "row", gap: 12, padding: 16 }}>
+          <Skeleton style={{ borderRadius: 999, height: 28, width: 28 }} />
+          <View style={{ flex: 1, gap: 8 }}>
+            <Skeleton style={{ height: 16, width: "54%" }} />
+            <Skeleton style={{ height: 12, width: "30%" }} />
+          </View>
+          <Skeleton style={{ height: 18, width: 18 }} />
+        </View>
+      ))}
+    </View>
+  );
+}

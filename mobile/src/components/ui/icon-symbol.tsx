@@ -39,6 +39,7 @@ const MAPPING = {
   'mic.fill': 'mic',
   'signature': 'draw',
   'checkmark.circle.fill': 'check-circle',
+  tray: 'inventory-2',
   'circle': 'radio-button-unchecked',
 } as IconMapping;
 

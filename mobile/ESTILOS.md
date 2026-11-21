@@ -134,11 +134,18 @@ ella. No se duplican botones o campos manualmente.
 
 ## Estados visibles
 
-- Cargando: `ActivityIndicator` con color `#0a7ea4`.
+- Cargando: usar skeletons que representen la estructura del contenido cuando
+  esta ya se conoce; reservar `ActivityIndicator` para acciones puntuales sin
+  una estructura estable.
 - Error de formulario o servicio: `Text` con `text-red-600`.
 - Error destacado: superficie clara y texto `DESIGN.colors.error`.
 - Confirmación de guardado: diálogo nativo de React Native con el mensaje
   “Los cambios se guardaron correctamente”.
+
+Los botones aplican una presión breve y controlada para comunicar que la
+interacción fue recibida. La animación se desactiva cuando el sistema solicita
+reducir movimiento. Los estados vacíos incluyen una señal visual discreta y
+centrada, sin convertir un estado informativo en una acción nueva.
 
 ## Configuración
 

@@ -1,5 +1,6 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Animated,
   Pressable,
@@ -50,6 +51,7 @@ export function Button({
   testID,
 }: ButtonProps) {
   const scale = useRef(new Animated.Value(1)).current;
+  const [reduceMotion, setReduceMotion] = useState(false);
   const unavailable = disabled || loading;
   const textColor = variant === "secondary" ? DESIGN.colors.brand : DESIGN.colors.surface;
   const loadingColor = unavailable ? DESIGN.colors.disabledText : textColor;
@@ -62,13 +64,24 @@ export function Button({
         : { backgroundColor: DESIGN.colors.brandPressed };
 
   const animateTo = (value: number) => {
+    if (reduceMotion) return;
     Animated.spring(scale, { toValue: value, useNativeDriver: true, speed: 24, bounciness: 4 }).start();
   };
+
+  useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (mounted) setReduceMotion(enabled);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <Animated.View
       className={className}
-      style={{ width: "100%", transform: [{ scale }] }}
+      style={{ width: "100%", transform: [{ scale: reduceMotion ? 1 : scale }] }}
     >
       <Pressable
         accessibilityRole="button"

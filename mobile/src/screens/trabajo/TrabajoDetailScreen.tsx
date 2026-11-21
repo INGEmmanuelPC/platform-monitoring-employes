@@ -1,6 +1,7 @@
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
+import { DetailSkeleton } from "@/components/Skeleton";
 import { DESIGN } from "@/constants/design";
 
 import { useWorkOrderFlow } from "./hooks/useWorkOrderFlow";
@@ -12,7 +13,7 @@ export default function TrabajoDetailScreen() {
   const { error, loading, pasos, refresh, trabajo } = useWorkOrderFlow();
   const departure = useWorkDeparture(trabajo?.id ?? "", refresh);
 
-  if (loading) return <ActivityIndicator className="flex-1" color={DESIGN.colors.brand} />;
+  if (loading) return <ScrollView className="flex-1" style={{ backgroundColor: DESIGN.colors.canvas }} contentContainerClassName="gap-4 p-4"><DetailSkeleton /></ScrollView>;
   if (error) return <View className="flex-1 items-center justify-center p-6" style={{ backgroundColor: DESIGN.colors.canvas }}><Text className="text-center text-base" style={{ color: DESIGN.colors.error }}>{error}</Text></View>;
   if (!trabajo) return <View className="flex-1 items-center justify-center p-6" style={{ backgroundColor: DESIGN.colors.canvas }}><Text className="text-center text-base" style={{ color: DESIGN.colors.textSecondary }}>No se encontró este trabajo.</Text></View>;
 

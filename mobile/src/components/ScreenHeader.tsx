@@ -28,7 +28,7 @@ export function ScreenHeader({ eyebrow, title, subtitle, showBack = false }: Pro
           <IconSymbol size={20} name="chevron.left" color={DESIGN.colors.brand} />
         </Pressable>
       ) : null}
-      <View className="min-w-0 flex-1 gap-0.5">
+      <View className="min-w-0 flex-1 gap-0.5 border-l-2 pl-3" style={{ borderLeftColor: DESIGN.colors.brand }}>
         {eyebrow ? <Text className="font-mono text-[10px] uppercase tracking-widest" style={{ color: DESIGN.colors.brand }}>{eyebrow}</Text> : null}
         <Text className="font-display text-2xl" numberOfLines={1} adjustsFontSizeToFit style={{ color: DESIGN.colors.text }}>{title}</Text>
         {subtitle ? <Text className="text-xs" numberOfLines={1} style={{ color: DESIGN.colors.textSecondary }}>{subtitle}</Text> : null}
