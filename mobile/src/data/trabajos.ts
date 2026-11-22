@@ -4,6 +4,7 @@ import type { TrabajoLocal } from "./types";
 import { listEntities, syncOperations, uploadEvidence, type SyncOperation } from "@/src/api/entities";
 import { ApiRequestError } from "@/src/api/http";
 import { firmaSvgTieneTrazo, transicionTrabajoYaSuperada, transicionarTrabajo } from "@/src/domain/estadoTrabajo";
+import { transicionarReporte } from "@/src/domain/estadoReporte";
 import {
   buildTrabajosListQuery,
   buildTrabajoScopeFilter,
@@ -84,7 +85,10 @@ export async function upsertTrabajos(
           WHEN trabajos.sync IN ('SOLO_LOCAL', 'EN_COLA', 'CONFLICTO') THEN trabajos.estado
           ELSE excluded.estado
         END,
-        reporte = excluded.reporte,
+        reporte = CASE
+          WHEN trabajos.sync IN ('SOLO_LOCAL', 'EN_COLA', 'CONFLICTO') THEN trabajos.reporte
+          ELSE excluded.reporte
+        END,
         updated_at = CASE
           WHEN trabajos.sync IN ('SOLO_LOCAL', 'EN_COLA', 'CONFLICTO') THEN trabajos.updated_at
           ELSE excluded.updated_at
@@ -207,17 +211,21 @@ export async function guardarNota(
   const now = new Date().toISOString();
   const evidenciaId = `NOTA-${Date.now()}`;
   await database.withTransactionAsync(async () => {
-    const trabajo = await database.getFirstAsync<{ id: string }>(
-      `SELECT id FROM trabajos WHERE ${workPredicate(role)}`,
+    const trabajo = await database.getFirstAsync<{ id: string; reporte: string }>(
+      `SELECT id, reporte FROM trabajos WHERE ${workPredicate(role)}`,
       ...workBindings(actorId, trabajoId, role),
     );
     if (!trabajo) throw new Error("No se encontró el trabajo disponible para esta cuenta.");
+    // Eje 3, sin red: guardar la nota deja el reporte en AUDIO_LISTO. Si ya
+    // estaba más adelante (otra nota, reporte en borrador), no se retrocede.
+    const reporte = transicionarReporte(trabajo.reporte, "registrarInsumo", { rol: role });
+    const nuevoReporte = reporte.ok ? reporte.estado : trabajo.reporte;
     await database.runAsync(
       `INSERT INTO evidencias (id, trabajo_id, tipo, contenido, captured_at, created_at)
        VALUES (?, ?, 'NOTA', ?, ?, ?)`, evidenciaId, trabajoId, contenido, now, now,
     );
     await database.runAsync(
-      `UPDATE trabajos SET sync = 'EN_COLA', updated_at = ? WHERE id = ?`, now, trabajoId,
+      `UPDATE trabajos SET sync = 'EN_COLA', reporte = ?, updated_at = ? WHERE id = ?`, nuevoReporte, now, trabajoId,
     );
     await database.runAsync(
       `INSERT INTO sync_queue (entity, entity_id, operation, payload, actor_id, created_at)

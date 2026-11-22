@@ -7,6 +7,7 @@ import { config } from "./config.js";
 import { avisoPorCambioDeEstado, NotificadorExpoPush, type CambioDeEstado } from "./notificaciones.js";
 import { AlmacenTokensPushSupabase } from "./push-tokens.js";
 import { createAdminClient, createRequestClient } from "./supabase.js";
+import { transicionarReporte } from "./reporte-state.js";
 import { esFirmaSvgValida, esTransicionTrabajoValida, type EstadoTrabajoServidor } from "./trabajo-state.js";
 import {
   clienteSchema,
@@ -14,6 +15,7 @@ import {
   ordenSchema,
   patchSchema,
   registerSchema,
+  reporteAccionSchema,
   syncOperationSchema,
   tecnicoCreateSchema,
   tokenPushSchema,
@@ -328,6 +330,85 @@ app.delete("/tecnicos/:id", requireAdmin, async (request, response, next) => {
     });
     if (banError) throw banError;
     response.json({ deleted: true, id: data.id });
+  } catch (error) { next(error); }
+});
+
+// --- Eje 3: el reporte, sin IA. Solo el administrador, y solo en línea. ---
+
+// Todo lo que el admin necesita ver para redactar y aprobar el reporte.
+app.get("/ordenes/:id/revision", requireAdmin, async (request, response, next) => {
+  try {
+    const id = z.string().uuid().parse(request.params.id);
+    const { data: trabajo, error } = await response.locals.supabase
+      .from("trabajos")
+      .select("id, cliente, direccion, descripcion, estado, reporte, reporte_texto, reporte_aprobado_at, llegada_at, hora_salida, observaciones")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!trabajo) {
+      response.status(404).json({ error: "La orden no existe." });
+      return;
+    }
+    const { data: evidencias, error: evidenciasError } = await response.locals.supabase
+      .from("evidencias")
+      .select("tipo, storage_path, contenido, captured_at")
+      .eq("trabajo_id", id)
+      .order("captured_at", { ascending: true });
+    if (evidenciasError) throw evidenciasError;
+    type FilaEvidencia = { tipo: string; storage_path: string | null; contenido: string | null };
+    const lista: FilaEvidencia[] = evidencias ?? [];
+    const conRuta = (tipo: string) =>
+      lista.filter((item) => item.tipo === tipo && Boolean(item.storage_path?.trim())).length;
+    response.json({
+      trabajo,
+      notas: lista.filter((item) => item.tipo === "NOTA" && item.contenido?.trim()).map((item) => item.contenido as string),
+      tiene_firma: lista.some((item) => item.tipo === "FIRMA" && esFirmaSvgValida(item.contenido)),
+      fotos_antes: conRuta("FOTO_ANTES"),
+      fotos_despues: conRuta("FOTO_DESPUES"),
+    });
+  } catch (error) { next(error); }
+});
+
+// Redactar (o editar el borrador) y aprobar. Cerrar el trabajo sigue siendo
+// PATCH /ordenes/:id con estado CERRADO; al cerrarse, Postgres deja el reporte
+// ENTREGADO en la misma operación.
+app.patch("/ordenes/:id/reporte", requireAdmin, async (request, response, next) => {
+  try {
+    const id = z.string().uuid().parse(request.params.id);
+    const input = parse(reporteAccionSchema, request.body);
+    const { data: trabajo, error } = await response.locals.supabase
+      .from("trabajos")
+      .select("id, estado, reporte, reporte_texto")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!trabajo) {
+      response.status(404).json({ error: "La orden no existe." });
+      return;
+    }
+    const texto = (input.texto ?? trabajo.reporte_texto ?? "").trim();
+    const resultado = transicionarReporte(trabajo.reporte, input.accion, {
+      rol: response.locals.profile.role,
+      estadoTrabajo: trabajo.estado,
+      texto,
+    });
+    if (!resultado.ok) {
+      response.status(409).json({ error: resultado.motivo });
+      return;
+    }
+    const { data, error: updateError } = await response.locals.supabase
+      .from("trabajos")
+      .update({ reporte: resultado.estado, reporte_texto: texto })
+      .eq("id", id)
+      .eq("reporte", trabajo.reporte)
+      .select("id, estado, reporte, reporte_texto, reporte_aprobado_at")
+      .maybeSingle();
+    if (updateError) throw updateError;
+    if (!data) {
+      response.status(409).json({ error: "El reporte cambió mientras se actualizaba. Actualízalo e inténtalo de nuevo." });
+      return;
+    }
+    response.json(data);
   } catch (error) { next(error); }
 });
 

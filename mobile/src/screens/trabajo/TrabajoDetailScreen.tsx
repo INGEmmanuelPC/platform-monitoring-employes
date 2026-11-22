@@ -1,8 +1,11 @@
+import { useRouter } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { DetailSkeleton } from "@/components/Skeleton";
 import { DESIGN } from "@/constants/design";
+import { TEXTOS_REVISION } from "@/constants/revision";
+import { useAuth } from "@/src/session/AuthProvider";
 
 import { useWorkOrderFlow } from "./hooks/useWorkOrderFlow";
 import { useWorkDeparture } from "./hooks/useWorkDeparture";
@@ -12,6 +15,8 @@ import { TrabajoResumenCard } from "./components/TrabajoResumenCard";
 export default function TrabajoDetailScreen() {
   const { error, loading, pasos, refresh, trabajo } = useWorkOrderFlow();
   const departure = useWorkDeparture(trabajo?.id ?? "", refresh);
+  const router = useRouter();
+  const { profile } = useAuth();
 
   if (loading) return <ScrollView className="flex-1" style={{ backgroundColor: DESIGN.colors.canvas }} contentContainerClassName="gap-4 p-4"><DetailSkeleton /></ScrollView>;
   if (error) return <View className="flex-1 items-center justify-center p-6" style={{ backgroundColor: DESIGN.colors.canvas }}><Text className="text-center text-base" style={{ color: DESIGN.colors.error }}>{error}</Text></View>;
@@ -21,6 +26,13 @@ export default function TrabajoDetailScreen() {
     <ScrollView className="flex-1" style={{ backgroundColor: DESIGN.colors.canvas }}>
       <View className="gap-4 p-4">
         <TrabajoResumenCard trabajo={trabajo} />
+        {profile?.role === "admin" && (trabajo.estado === "COMPLETADO" || trabajo.estado === "CERRADO") ? (
+          <Button
+            text={TEXTOS_REVISION.abrir}
+            variant="secondary"
+            onPress={() => router.push({ pathname: "/trabajo/[id]/revision", params: { id: trabajo.id } })}
+          />
+        ) : null}
         {trabajo.estado === "ASIGNADO" ? (
           <View className="gap-2">
             <Button

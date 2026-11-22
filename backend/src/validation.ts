@@ -101,3 +101,10 @@ export const patchSchema = <T extends z.ZodObject<Record<string, z.ZodTypeAny>>>
 export const tokenPushSchema = z.object({
   token: z.string().trim().max(200).regex(FORMATO_TOKEN_EXPO, "El token push no tiene el formato de Expo.").nullable(),
 }).strict();
+
+// Acciones del administrador sobre el reporte (eje 3). El estado resultante lo
+// decide el servidor; el cliente solo dice qué quiere hacer.
+export const reporteAccionSchema = z.object({
+  accion: z.enum(["redactar", "aprobar"]),
+  texto: z.string().trim().max(5000).optional(),
+}).strict();

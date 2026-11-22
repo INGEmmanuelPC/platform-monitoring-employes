@@ -15,6 +15,7 @@
 11. Ejecuta `008_admin_ejecuta_trabajos.sql` si la cuenta administradora debe ejecutar trabajos desde Hoy. Esta migración conserva `tecnico_id`, permite al administrador leer y guardar evidencias bajo su sesión, y actualiza el RPC para aceptar las acciones de admin sin abrir el acceso del técnico a trabajos ajenos.
 
 12. Ejecuta `009_tokens_push.sql` para crear `push_tokens` (tokens de notificaciones push; solo el backend la lee y escribe).
+13. Ejecuta `010_eje_reporte.sql` para que el reporte avance sin IA (nota → borrador → aprobado → entregado). Agrega las columnas `reporte_texto`, `reporte_aprobado_por` y `reporte_aprobado_at` y los triggers que protegen el eje. Es re-ejecutable.
 
 Las migraciones crean:
 
