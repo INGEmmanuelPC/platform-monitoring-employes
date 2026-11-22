@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { DESIGN, RAISED_SURFACE } from "@/constants/design";
@@ -10,6 +11,9 @@ const OPTIONS: { value: AppearanceMode; label: string; icon: string }[] = [
 
 export function AppearanceControl() {
   const { mode, setMode } = useAppearance();
+  const [pressedMode, setPressedMode] = useState<AppearanceMode>(mode);
+
+  useEffect(() => setPressedMode(mode), [mode]);
 
   return (
     <View className="gap-3 border p-3" style={{ backgroundColor: DESIGN.colors.surface, borderColor: DESIGN.colors.border, borderRadius: DESIGN.radius.control, ...RAISED_SURFACE }}>
@@ -22,14 +26,21 @@ export function AppearanceControl() {
       </View>
       <View className="flex-row gap-2">
         {OPTIONS.map((option) => {
-          const selected = mode === option.value;
+          const selected = pressedMode === option.value;
           return (
             <Pressable
               key={option.value}
               accessibilityRole="radio"
               accessibilityState={{ selected }}
               accessibilityLabel={`Usar modo ${option.label}`}
-              onPress={() => setMode(option.value)}
+              onPressIn={() => {
+                setPressedMode(option.value);
+                setMode(option.value);
+              }}
+              onPress={() => {
+                setPressedMode(option.value);
+                setMode(option.value);
+              }}
               android_ripple={{ color: DESIGN.colors.border }}
               className="flex-1 flex-row items-center justify-center gap-2 border px-3 py-2.5"
               style={{ backgroundColor: selected ? DESIGN.colors.selected : DESIGN.colors.inset, borderColor: selected ? DESIGN.colors.brand : DESIGN.colors.border, borderRadius: DESIGN.radius.control }}

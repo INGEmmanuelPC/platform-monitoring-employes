@@ -28,3 +28,13 @@ body[data-appearance="dark"],
   background: #0b1117;
   color: #f2f6f8;
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  body *,
+  body *::before,
+  body *::after {
+    transition-property: background-color, color, border-color, box-shadow;
+    transition-duration: 180ms;
+    transition-timing-function: ease-out;
+  }
+}

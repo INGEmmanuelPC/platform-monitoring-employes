@@ -10,7 +10,7 @@ import { useFonts } from "expo-font";
 import { SQLiteProvider } from "expo-sqlite";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { PropsWithChildren, useEffect } from "react";
+import { Fragment, PropsWithChildren, useEffect, useLayoutEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 
@@ -33,7 +33,7 @@ export function AppProviders({ children }: PropsWithChildren) {
     IBMPlexSans_600SemiBold,
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (fontsLoaded || fontsError) {
       SplashScreen.hideAsync();
     }
@@ -65,7 +65,7 @@ function ThemedProviders({ children }: PropsWithChildren) {
             <SQLiteProvider databaseName="empleados.db" onInit={initializeDatabase}>
               <ThemeProvider key={mode} value={mode === "dark" ? DarkTheme : DefaultTheme}>
                 <RouteGuard>
-                  {children}
+                  <Fragment key={mode}>{children}</Fragment>
                 </RouteGuard>
                 <StatusBar style={mode === "dark" ? "light" : "dark"} />
               </ThemeProvider>

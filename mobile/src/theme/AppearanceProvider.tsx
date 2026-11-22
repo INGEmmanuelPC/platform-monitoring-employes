@@ -1,5 +1,5 @@
 import * as SecureStore from "expo-secure-store";
-import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, PropsWithChildren, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Platform, useColorScheme } from "react-native";
 import { applyAppearance } from "@/constants/design";
 
@@ -19,6 +19,7 @@ function applyWebAppearance(mode: AppearanceMode): void {
   document.documentElement.style.colorScheme = mode;
   document.body.dataset.appearance = mode;
   document.body.style.backgroundColor = mode === "dark" ? "#0B1117" : "#E9EEF1";
+  document.getElementById("root")?.setAttribute("data-appearance", mode);
 }
 
 async function readMode(): Promise<AppearanceMode | null> {
@@ -58,7 +59,7 @@ export function AppearanceProvider({ children }: PropsWithChildren) {
     });
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     applyAppearance(mode);
     applyWebAppearance(mode);
   }, [mode]);
