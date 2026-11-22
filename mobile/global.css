@@ -8,3 +8,23 @@
 @import "tailwindcss/utilities.css";
 
 @import "nativewind/theme";
+
+:root,
+body,
+#root {
+  min-height: 100%;
+}
+
+html[data-appearance="light"],
+body[data-appearance="light"],
+#root[data-appearance="light"] {
+  background: #e9eef1;
+  color: #152630;
+}
+
+html[data-appearance="dark"],
+body[data-appearance="dark"],
+#root[data-appearance="dark"] {
+  background: #0b1117;
+  color: #f2f6f8;
+}

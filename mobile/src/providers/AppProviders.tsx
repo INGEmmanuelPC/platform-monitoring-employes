@@ -52,7 +52,11 @@ export function AppProviders({ children }: PropsWithChildren) {
 
 function ThemedProviders({ children }: PropsWithChildren) {
   const { mode } = useAppearance();
-  applyAppearance(mode);
+
+  useEffect(() => {
+    applyAppearance(mode);
+  }, [mode]);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AppAlertProvider>

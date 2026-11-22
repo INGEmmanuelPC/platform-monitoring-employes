@@ -13,6 +13,14 @@ type AppearanceContextValue = {
 const STORAGE_KEY = "cuadrilla.appearance";
 const AppearanceContext = createContext<AppearanceContextValue | null>(null);
 
+function applyWebAppearance(mode: AppearanceMode): void {
+  if (Platform.OS !== "web" || typeof document === "undefined") return;
+  document.documentElement.dataset.appearance = mode;
+  document.documentElement.style.colorScheme = mode;
+  document.body.dataset.appearance = mode;
+  document.body.style.backgroundColor = mode === "dark" ? "#0B1117" : "#E9EEF1";
+}
+
 async function readMode(): Promise<AppearanceMode | null> {
   try {
     const stored = Platform.OS === "web"
@@ -42,14 +50,24 @@ export function AppearanceProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     void readMode().then((stored) => {
-      if (stored) setModeState(stored);
+      if (stored) {
+        applyAppearance(stored);
+        applyWebAppearance(stored);
+        setModeState(stored);
+      }
     });
   }, []);
+
+  useEffect(() => {
+    applyAppearance(mode);
+    applyWebAppearance(mode);
+  }, [mode]);
 
   const value = useMemo<AppearanceContextValue>(() => ({
     mode,
     setMode: (nextMode) => {
       applyAppearance(nextMode);
+      applyWebAppearance(nextMode);
       setModeState(nextMode);
       void writeMode(nextMode);
     },
