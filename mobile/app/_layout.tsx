@@ -14,6 +14,7 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tecnico)" options={{ headerShown: false }} />
+        <Stack.Screen name="ubicacion/consentimiento" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="trabajo/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="crud/tecnicos/index" options={{ title: SCREEN_TITLES["crud/tecnicos/index"], headerShown: false }} />
         <Stack.Screen name="crud/tecnicos/nuevo" options={{ title: SCREEN_TITLES["crud/tecnicos/nuevo"], headerShown: false }} />

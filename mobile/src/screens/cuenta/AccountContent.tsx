@@ -9,6 +9,7 @@ import { useAuth } from "@/src/session/AuthProvider";
 import { AccountProfileCard } from "./components/AccountProfileCard";
 import { ManagementMenu } from "./components/ManagementMenu";
 import { PendingSyncCard } from "./components/PendingSyncCard";
+import { UbicacionConsentCard } from "./components/UbicacionConsentCard";
 import { useSyncQueue } from "./hooks/useSyncQueue";
 
 export function AccountContent() {
@@ -54,6 +55,7 @@ export function AccountContent() {
             ) : null}
           </View>
         ) : null}
+        {isTechnician ? <UbicacionConsentCard /> : null}
         <ManagementMenu />
         <AppearanceControl />
         <Button text="Cerrar sesión" onPress={signOut} />
