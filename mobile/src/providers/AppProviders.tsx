@@ -16,6 +16,7 @@ import "react-native-reanimated";
 
 import { initializeDatabase } from "@/src/data/database";
 import { AuthProvider } from "@/src/session/AuthProvider";
+import { ConsentimientoProvider } from "@/src/session/ConsentimientoProvider";
 import { RouteGuard } from "@/src/session/RouteGuard";
 import { AppAlertProvider } from "@/components/AppAlert";
 import { AppearanceProvider, useAppearance } from "@/src/theme/AppearanceProvider";
@@ -56,14 +57,16 @@ function ThemedProviders({ children }: PropsWithChildren) {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AppAlertProvider>
         <AuthProvider>
-          <SQLiteProvider databaseName="empleados.db" onInit={initializeDatabase}>
-            <ThemeProvider value={mode === "dark" ? DarkTheme : DefaultTheme}>
-              <RouteGuard>
-                {children}
-              </RouteGuard>
-              <StatusBar style={mode === "dark" ? "light" : "dark"} />
-            </ThemeProvider>
-          </SQLiteProvider>
+          <ConsentimientoProvider>
+            <SQLiteProvider databaseName="empleados.db" onInit={initializeDatabase}>
+              <ThemeProvider value={mode === "dark" ? DarkTheme : DefaultTheme}>
+                <RouteGuard>
+                  {children}
+                </RouteGuard>
+                <StatusBar style={mode === "dark" ? "light" : "dark"} />
+              </ThemeProvider>
+            </SQLiteProvider>
+          </ConsentimientoProvider>
         </AuthProvider>
       </AppAlertProvider>
     </GestureHandlerRootView>
