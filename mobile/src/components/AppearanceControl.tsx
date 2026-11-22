@@ -30,6 +30,7 @@ export function AppearanceControl() {
               accessibilityState={{ selected }}
               accessibilityLabel={`Usar modo ${option.label}`}
               onPress={() => setMode(option.value)}
+              android_ripple={{ color: DESIGN.colors.border }}
               className="flex-1 flex-row items-center justify-center gap-2 border px-3 py-2.5"
               style={{ backgroundColor: selected ? DESIGN.colors.selected : DESIGN.colors.inset, borderColor: selected ? DESIGN.colors.brand : DESIGN.colors.border, borderRadius: DESIGN.radius.control }}
             >

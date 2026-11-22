@@ -1,6 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from "react";
 import { Platform, useColorScheme } from "react-native";
+import { applyAppearance } from "@/constants/design";
 
 export type AppearanceMode = "light" | "dark";
 
@@ -48,6 +49,7 @@ export function AppearanceProvider({ children }: PropsWithChildren) {
   const value = useMemo<AppearanceContextValue>(() => ({
     mode,
     setMode: (nextMode) => {
+      applyAppearance(nextMode);
       setModeState(nextMode);
       void writeMode(nextMode);
     },

@@ -59,7 +59,7 @@ function ThemedProviders({ children }: PropsWithChildren) {
         <AuthProvider>
           <ConsentimientoProvider>
             <SQLiteProvider databaseName="empleados.db" onInit={initializeDatabase}>
-              <ThemeProvider value={mode === "dark" ? DarkTheme : DefaultTheme}>
+              <ThemeProvider key={mode} value={mode === "dark" ? DarkTheme : DefaultTheme}>
                 <RouteGuard>
                   {children}
                 </RouteGuard>
