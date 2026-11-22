@@ -17,6 +17,7 @@ export default function TrabajoStack() {
       <Stack.Screen name="llegada" options={{ title: "Registro de llegada" }} />
       <Stack.Screen name="evidencia" options={{ title: "Evidencia de campo" }} />
       <Stack.Screen name="dictado" options={{ title: "Nota de trabajo" }} />
+      <Stack.Screen name="revision" options={{ title: "Revisión del reporte" }} />
       <Stack.Screen name="firma" options={{ title: "Conformidad del cliente", presentation: "modal" }} />
     </Stack>
   );

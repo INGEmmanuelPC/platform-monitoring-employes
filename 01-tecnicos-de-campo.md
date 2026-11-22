@@ -48,11 +48,11 @@ Estilo elegido: **Skeuomorfismo**. La elevación y los bordes táctiles hacen qu
 
 ### Fase 2 · Ubicación y administración mínima (3 – 16 nov)
 
-- [ ] Pantalla de consentimiento (Ley 1581/2012), una sola vez por cuenta, guardada en `expo-secure-store`.
+- [x] Pantalla de consentimiento (Ley 1581/2012), una sola vez por cuenta, guardada en `expo-secure-store`. Decisión de ubicación en `mobile/docs/adr/0010-consentimiento-ubicacion.md`. Falta probarla en dispositivo.
 - [ ] Rastreo GPS en primer plano con `expo-location` (`watchPositionAsync`) solo mientras el trabajo está `EN_CAMINO`; se detiene al llegar, cancelar o cerrar sesión.
 - [ ] Tabla `posiciones_pendientes` y su carril de envío separado de `sync_queue` (tope de 500 filas, submuestreo a 30).
 - [ ] Mapa simple en el detalle del trabajo con el recorrido enviado (`react-native-maps`; ver nota de costos abajo).
-- [ ] Acciones de admin dentro de la app: aprobar reporte, cerrar trabajo (`COMPLETADO → CERRADO`) y cancelar con motivo obligatorio.
+- [ ] Acciones de admin dentro de la app: aprobar reporte, cerrar trabajo (`COMPLETADO → CERRADO`) y cancelar con motivo obligatorio. Ya están **aprobar reporte** y **cerrar trabajo** (ADR 0011, pantalla `trabajo/[id]/revision`); falta **cancelar con motivo**.
 - [ ] Validación mínima de rol en el backend: un técnico no puede enviar `CERRADO`, `CANCELADO` ni `APROBADO` por `/sync`.
 - [ ] `event_id` (UUID con `expo-crypto`) en `sync_queue` + restricción `UNIQUE` en Postgres para que reenviar no duplique.
 
