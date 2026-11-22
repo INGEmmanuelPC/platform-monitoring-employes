@@ -1,7 +1,7 @@
 # 0011 - Cómo avanza el eje del reporte sin IA
 
 - **Estado:** aceptada
-- **Fecha:** 2026-11-23
+- **Fecha:** 2026-11-22
 
 ## Contexto
 
