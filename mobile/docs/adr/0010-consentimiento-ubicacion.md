@@ -1,7 +1,7 @@
 # 0010 - Consentimiento de ubicación (Ley 1581 de 2012)
 
 - **Estado:** aceptada
-- **Fecha:** 2026-11-23
+- **Fecha:** 2026-11-22
 
 ## Contexto
 
