@@ -1,12 +1,13 @@
 import { useSQLiteContext } from "expo-sqlite";
 import { useFocusEffect } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useAuth } from "@/src/session/AuthProvider";
 import { listEntities } from "@/src/api/entities";
 import { describeSyncFailure } from "@/src/domain/syncError";
 
-import { getTrabajos, processSyncQueue, refreshTrabajosFromServer } from "./trabajos";
+import { sincronizarCola, suscribirSincronizacion } from "./sync-runner";
+import { getTrabajos, refreshTrabajosFromServer } from "./trabajos";
 import type { TrabajoLocal } from "./types";
 
 export function useTrabajos() {
@@ -19,7 +20,8 @@ export function useTrabajos() {
   const focused = useRef(false);
   const requestVersion = useRef(0);
 
-  const loadTrabajos = useCallback(async () => {
+  // silent: refresco que no muestra el esqueleto de carga (lo usa la sync automática).
+  const loadTrabajos = useCallback(async (silent = false) => {
     const currentRequest = ++requestVersion.current;
     const isActive = () => focused.current && requestVersion.current === currentRequest;
     const userId = session?.user.id;
@@ -33,8 +35,10 @@ export function useTrabajos() {
     }
     const authenticatedUserId: string = userId;
 
-    setLoading(true);
-    setError(null);
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const localTrabajos = await getTrabajos(database, authenticatedUserId, role);
       if (isActive()) {
@@ -44,7 +48,7 @@ export function useTrabajos() {
       let syncFailure: unknown;
       if (profile?.role === "tecnico" || profile?.role === "admin") {
         try {
-          await processSyncQueue(database, authenticatedUserId, profile.role);
+          await sincronizarCola(database, authenticatedUserId, profile.role);
         } catch (syncError) {
           syncFailure = syncError;
         }
@@ -82,6 +86,12 @@ export function useTrabajos() {
       requestVersion.current += 1;
     };
   }, [loadTrabajos]));
+
+  // Cuando la sincronización automática subió cambios, la lista visible se
+  // actualiza sola, sin esqueleto y sin que el técnico tenga que hacer nada.
+  useEffect(() => suscribirSincronizacion(() => {
+    if (focused.current) void loadTrabajos(true);
+  }), [loadTrabajos]);
 
   const refresh = useCallback(() => {
     if (focused.current) void loadTrabajos();

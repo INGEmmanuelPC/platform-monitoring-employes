@@ -1,5 +1,8 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
+// Compartido con la tarea de segundo plano, que abre la base por su cuenta.
+export const NOMBRE_BASE_DATOS = "empleados.db";
+
 export async function initializeDatabase(database: SQLiteDatabase) {
   await database.execAsync(`
     PRAGMA journal_mode = WAL;

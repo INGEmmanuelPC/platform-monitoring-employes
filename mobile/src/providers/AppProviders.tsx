@@ -14,7 +14,7 @@ import { Fragment, PropsWithChildren, useEffect, useLayoutEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 
-import { initializeDatabase } from "@/src/data/database";
+import { initializeDatabase, NOMBRE_BASE_DATOS } from "@/src/data/database";
 import { AuthProvider } from "@/src/session/AuthProvider";
 import { ConsentimientoProvider } from "@/src/session/ConsentimientoProvider";
 import { RouteGuard } from "@/src/session/RouteGuard";
@@ -62,7 +62,7 @@ function ThemedProviders({ children }: PropsWithChildren) {
       <AppAlertProvider>
         <AuthProvider>
           <ConsentimientoProvider>
-            <SQLiteProvider databaseName="empleados.db" onInit={initializeDatabase}>
+            <SQLiteProvider databaseName={NOMBRE_BASE_DATOS} onInit={initializeDatabase}>
               <ThemeProvider key={mode} value={mode === "dark" ? DarkTheme : DefaultTheme}>
                 <RouteGuard>
                   <Fragment key={mode}>{children}</Fragment>

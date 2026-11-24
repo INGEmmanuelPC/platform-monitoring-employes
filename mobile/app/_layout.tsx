@@ -1,5 +1,10 @@
 import { Stack } from "expo-router";
+
+// Efecto secundario a propósito: define la tarea de segundo plano en el ámbito
+// global del bundle, como exige expo-task-manager.
+import "@/src/data/background-sync";
 import { AppProviders } from "@/src/providers/AppProviders";
+import { AutoSyncBridge } from "@/src/providers/AutoSyncBridge";
 import { PushNotificationsBridge } from "@/src/providers/PushNotificationsBridge";
 import { SCREEN_TITLES } from "@/src/navigation/screenTitles";
 
@@ -11,6 +16,7 @@ export default function RootLayout() {
   return (
     <AppProviders>
       <PushNotificationsBridge />
+      <AutoSyncBridge />
       <Stack>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tecnico)" options={{ headerShown: false }} />
