@@ -1,9 +1,11 @@
 import type { Session } from "@supabase/supabase-js";
-import { createContext, useContext, useEffect, useState, type PropsWithChildren } from "react";
+import { useNetworkState } from "expo-network";
+import { createContext, useContext, useEffect, useRef, useState, type PropsWithChildren } from "react";
 
 import { logout } from "@/src/api/auth";
 import { savePushToken } from "@/src/api/push";
 import { supabase } from "@/src/api/client";
+import { hayRed } from "@/src/domain/autoSync";
 
 export type ProfileRole = "admin" | "tecnico";
 
@@ -28,6 +30,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Si el perfil no se pudo cargar (por ejemplo, la app se abrió sin señal), se
+  // reintenta cuando vuelve la red: sin el rol no se puede sincronizar.
+  const [intentoPerfil, setIntentoPerfil] = useState(0);
+  const conRed = hayRed(useNetworkState());
+  const perfilFallo = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -96,7 +103,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return () => {
       active = false;
     };
-  }, [session?.user.id]);
+  }, [session?.user.id, intentoPerfil]);
+
+  useEffect(() => {
+    perfilFallo.current = profileError !== null;
+  }, [profileError]);
+
+  useEffect(() => {
+    if (conRed && perfilFallo.current) setIntentoPerfil((n) => n + 1);
+  }, [conRed]);
 
   const signOut = async () => {
     // Antes de cerrar sesión: después ya no hay token de sesión para avisar al
