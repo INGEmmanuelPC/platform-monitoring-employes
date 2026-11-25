@@ -612,3 +612,15 @@ export async function processSyncQueue(database: SQLiteDatabase, actorId: string
   });
   return results.length + reconciledCount;
 }
+
+// Refleja en SQLite una cancelación que el servidor ya aceptó. Si el trabajo
+// tiene cambios locales pendientes, no se toca: la sincronización lo reconcilia.
+export async function aplicarCancelacionRemota(database: SQLiteDatabase, trabajoId: string, motivo: string) {
+  await database.runAsync(
+    `UPDATE trabajos SET estado = 'CANCELADO', motivo_cancelacion = ?, updated_at = ?
+     WHERE id = ? AND sync NOT IN ('SOLO_LOCAL', 'EN_COLA', 'CONFLICTO')`,
+    motivo,
+    new Date().toISOString(),
+    trabajoId,
+  );
+}

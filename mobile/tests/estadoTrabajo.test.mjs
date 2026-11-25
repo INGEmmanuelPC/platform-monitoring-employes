@@ -123,3 +123,17 @@ test("el técnico sí puede avanzar el flujo de campo", () => {
     "COMPLETADO",
   );
 });
+
+test("solo se cancela antes de completar", async () => {
+  const { puedeCancelarse } = await import(compiledUrl);
+  for (const e of ["ASIGNADO", "EN_CAMINO", "EN_SITIO"]) assert.equal(puedeCancelarse(e), true);
+  for (const e of ["COMPLETADO", "CERRADO", "CANCELADO", "inventado"]) assert.equal(puedeCancelarse(e), false);
+});
+
+test("el motivo de cancelación es obligatorio y tiene tope", async () => {
+  const { problemaMotivoCancelacion } = await import(compiledUrl);
+  assert.equal(problemaMotivoCancelacion(""), "vacio");
+  assert.equal(problemaMotivoCancelacion("   "), "vacio");
+  assert.equal(problemaMotivoCancelacion("x".repeat(1001)), "largo");
+  assert.equal(problemaMotivoCancelacion("  Cliente ausente  "), null);
+});

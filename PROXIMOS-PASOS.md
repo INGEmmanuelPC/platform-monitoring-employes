@@ -1,9 +1,9 @@
 # Avance y próximos pasos del MVP
 
 **Equipo:** Santiago Acosta Carvajal, Emmanuel Peñuela Chica, Jerónimo López Ospina
-**Fecha de este documento:** 24 de noviembre de 2026 (actualizado; la primera versión es del 22)
+**Fecha de este documento:** 25 de noviembre de 2026 (actualizado; la primera versión es del 22)
 **Entrega:** 5 de diciembre de 2026 (el 5 cae sábado, así que el cierre real es el viernes 4)
-**Tiempo que queda:** 11 días
+**Tiempo que queda:** 10 días
 
 Este documento tiene dos partes. La primera cuenta, con detalle, lo que se ha hecho (push, ícono, consentimiento de ubicación, eje del reporte, sincronización automática y reglas del servidor por rol). La segunda es lo que falta para el MVP, ordenado por qué tan necesario es. **Es la fuente de verdad del estado del proyecto: si algo cambia, se actualiza aquí.**
 
@@ -142,7 +142,7 @@ El ícono era el de Expo por defecto. Ahora `icon.png`, el ícono adaptable de A
 
 **Límites conocidos:** no hay indicador visual de que se está sincronizando (banner e indicador por tarjeta siguen pendientes); el candado no cubre procesos distintos (tarea de fondo y app abierta a la vez), así que lo definitivo sigue siendo `event_id` con `UNIQUE`; `CONFLICTO` sigue sin salida; si el perfil nunca carga, no se sincroniza; requiere un **APK nuevo** (módulos nativos y un plugin).
 
-### 2.6 Reglas del servidor por rol y foto «después» (ADR 0013) · este PR
+### 2.6 Reglas del servidor por rol y foto «después» (ADR 0013) · PR #20, commit `0d6a48d`
 
 **El problema.** El documento de visión dice que el técnico no puede enviar `CERRADO`, `CANCELADO` ni `APROBADO`, y que completar exige una foto «después». El servidor no lo cumplía: un técnico dueño de una orden podía cancelarla (por `/sync` o `PATCH /ordenes/:id`) y cerrarla una vez aprobado el reporte, y bastaba una foto «antes» para completar.
 
@@ -162,14 +162,26 @@ Completar un trabajo exige **firma y al menos una foto «después»**; una foto 
 
 **Límites conocidos:** el técnico aún puede editar desde PostgREST columnas como cliente, dirección o descripción de sus órdenes (ver sección 3.D); no hay pantalla de admin para cancelar con motivo.
 
-### 2.7 Pruebas y orden del repositorio
+### 2.7 Cancelar con motivo desde la app (admin) · este PR
+
+**Qué hace.** En el detalle de un trabajo `ASIGNADO`, `EN_CAMINO` o `EN_SITIO`, el administrador ve **«Cancelar trabajo»**. Al pulsarlo se abre un panel con el motivo (obligatorio, hasta 1000 caracteres) y **«Confirmar cancelación»**: son dos pasos a propósito, porque cancelar es terminal.
+
+**Cómo está hecho**
+- Va **directo al servidor** (`PATCH /ordenes/:id` con `CANCELADO` y el motivo), porque cancelar es del administrador y requiere red. El servidor ya valida el rol (ADR 0013) y el motivo, y avisa al técnico por push.
+- Si el servidor acepta, la copia local en SQLite pasa a `CANCELADO`, salvo que ese trabajo tenga cambios pendientes: en ese caso la sincronización lo reconcilia.
+- Reglas puras nuevas en `src/domain/estadoTrabajo.ts`: `puedeCancelarse` y `problemaMotivoCancelacion`, con pruebas.
+- Archivos: `src/screens/trabajo/components/CancelarTrabajoPanel.tsx`, `hooks/useWorkCancellation.ts`, `src/constants/cancelacion.ts`.
+
+**Límites:** sin conexión no se puede cancelar (muestra el error del servidor); el técnico no ve el botón.
+
+### 2.8 Pruebas y orden del repositorio
 
 - El script `test` ahora usa `tests/*.test.mjs` (móvil y backend), para que dos ramas no editen la misma línea y no choquen al fusionarse.
-- **Pruebas automáticas hoy:** móvil 56 y backend 30, todas en verde, más `tsc`, lint y `expo export --platform android` sin errores.
+- **Pruebas automáticas hoy:** móvil 58 y backend 30, todas en verde, más `tsc`, lint y `expo export --platform android` sin errores.
 - **Migraciones 010 y 011:** se probaron con 21 y 13 comprobaciones en PGlite (un Postgres real en WebAssembly), usando el trigger real de la migración 008. Esas pruebas **no están en el repositorio** y usan un usuario y un RLS simulados, así que no sustituyen probarlas en Supabase real.
 - **Ninguna de estas pruebas corrió en un celular ni contra un Supabase real.**
 
-### 2.8 Documentación
+### 2.9 Documentación
 
 - ADR 0009 (push), 0010 (consentimiento), 0011 (eje del reporte), 0012 (sincronización automática) y 0013 (reglas por rol), y nota en el 0005 (ícono).
 - Pasos 12 a 14 en `mobile/docs/supabase/README.md` (migraciones 009, 010 y 011).
@@ -201,7 +213,7 @@ Está ordenado por prioridad. **A** es lo que bloquea la definición de terminad
 - [x] **Validación de rol en `/sync`** (técnico no cancela ni cierra). Hecho en app, backend y Postgres (sección 2.6). Falta aplicar la migración `011` en el Supabase real.
 - [x] **Foto «después» obligatoria.** Hecho en las tres capas (sección 2.6).
 - [x] **Sincronización automática al volver la red** (sección 2.5). Falta probarla en un celular.
-- [ ] **Cancelar con motivo desde la app (admin).** La función `cancelarTrabajo` existe en la capa de datos (y ahora rechaza al técnico), pero ninguna pantalla la usa. Es lo siguiente a hacer.
+- [x] **Cancelar con motivo desde la app (admin)** (sección 2.7). Falta probarlo en un celular.
 
 ### B. Lo que da valor al producto
 
@@ -268,7 +280,7 @@ La idea es probar pronto, porque lo que nunca se ha corrido en un celular es lo 
 | Cuándo | Foco | Qué entra |
 |---|---|---|
 | **Lun 23 – Mar 24 nov** | Probar y desbloquear | Aplicar migraciones (en especial la 010), redesplegar Render, probar en celular el flujo, el consentimiento y la revisión. Corregir lo que salga |
-| **Mié 25 – Vie 27 nov** | Reglas del servidor | ~~Validación de rol en `/sync`~~ y ~~foto «después» obligatoria~~ (hechas el 24 nov), cancelar con motivo, `event_id` con su `UNIQUE` |
+| **Mié 25 – Vie 27 nov** | Reglas del servidor | ~~Validación de rol en `/sync`~~ y ~~foto «después» obligatoria~~ (hechas el 24 nov), ~~cancelar con motivo~~ (25 nov), `event_id` con su `UNIQUE` |
 | **Sáb 28 nov – Mar 1 dic** | Lo que falta de la definición | Nota de voz real, indicador de sincronización y banner sin conexión, PDF. **Congelamiento el domingo 29** |
 | **Mié 2 – Vie 4 dic** | Cierre | Prueba en modo avión, APK en dos teléfonos, datos semilla, README, video y ensayo |
 
@@ -317,5 +329,11 @@ La idea es probar pronto, porque lo que nunca se ha corrido en un celular es lo 
 3. Con un token de **admin**, la misma cancelación debe funcionar.
 4. Un trabajo con firma y solo foto «antes»: completarlo debe responder `409` pidiendo la foto «después».
 5. En la app, la pantalla de evidencia no deja continuar sin la foto «después».
+
+**Cancelar con motivo** (sirve Expo Go; con un admin y conexión)
+1. Abrir un trabajo `ASIGNADO`, `EN_CAMINO` o `EN_SITIO` como admin: aparece «Cancelar trabajo».
+2. Pulsarlo, dejar el motivo vacío: «Confirmar cancelación» queda deshabilitado.
+3. Escribir el motivo y confirmar: el trabajo pasa a `CANCELADO` y, con el APK, el técnico recibe el aviso con el motivo.
+4. Como técnico, el botón no aparece.
 
 **Qué no se puede probar en Expo Go:** las notificaciones push, el ícono nuevo y la tarea de segundo plano. Todo eso necesita un APK compilado.

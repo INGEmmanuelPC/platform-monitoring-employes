@@ -89,3 +89,19 @@ export function transicionarTrabajo(
 
   return siguiente;
 }
+
+// Desde dónde se puede cancelar: antes de completar. Igual que en el backend
+// y en Postgres (validar_transicion_trabajo).
+export function puedeCancelarse(estado: string): boolean {
+  return estado === "ASIGNADO" || estado === "EN_CAMINO" || estado === "EN_SITIO";
+}
+
+export const MAX_MOTIVO_CANCELACION = 1000;
+
+// Devuelve null si el motivo sirve, o el problema si no.
+export function problemaMotivoCancelacion(motivo: string): "vacio" | "largo" | null {
+  const limpio = motivo.trim();
+  if (!limpio) return "vacio";
+  if (limpio.length > MAX_MOTIVO_CANCELACION) return "largo";
+  return null;
+}
