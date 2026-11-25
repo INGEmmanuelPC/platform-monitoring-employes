@@ -121,11 +121,12 @@ Además de lo anterior ya existe (el detalle y los PR están en
 - **Sincronización automática** al volver la red o a primer plano, con candado
   único y backoff (ADR 0012). Toda sincronización pasa por `src/data/sync-runner.ts`;
   no llames a `processSyncQueue` directamente.
+- **Cancelar con motivo** (admin, requiere red) desde el detalle del trabajo.
 - **Consentimiento de ubicación** una vez por cuenta (ADR 0010), todavía sin GPS.
 - **Notificaciones push** en código (ADR 0009); falta la infraestructura del APK.
 
 Aún no existe: **nota de voz real**, `event_id` para idempotencia, rastreo GPS,
-PDF del reporte, cancelar con motivo desde la app, panel web de administrador.
+PDF del reporte, panel web de administrador.
 
 Los estados y etiquetas de `src/constants/trabajos.ts` son contratos de dominio; los
 datos de trabajos viven en SQLite y se refrescan desde el backend HTTP.

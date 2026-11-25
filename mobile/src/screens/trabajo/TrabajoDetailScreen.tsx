@@ -5,10 +5,12 @@ import { Button } from "@/components/Button";
 import { DetailSkeleton } from "@/components/Skeleton";
 import { DESIGN } from "@/constants/design";
 import { TEXTOS_REVISION } from "@/constants/revision";
+import { puedeCancelarse } from "@/src/domain/estadoTrabajo";
 import { useAuth } from "@/src/session/AuthProvider";
 
 import { useWorkOrderFlow } from "./hooks/useWorkOrderFlow";
 import { useWorkDeparture } from "./hooks/useWorkDeparture";
+import { CancelarTrabajoPanel } from "./components/CancelarTrabajoPanel";
 import { PasoLink } from "./components/PasoLink";
 import { TrabajoResumenCard } from "./components/TrabajoResumenCard";
 
@@ -54,6 +56,9 @@ export default function TrabajoDetailScreen() {
             <PasoLink key={paso.ruta} paso={paso} trabajoId={trabajo.id} />
           ))}
         </View>
+        {profile?.role === "admin" && puedeCancelarse(trabajo.estado) ? (
+          <CancelarTrabajoPanel trabajoId={trabajo.id} onCancelled={() => void refresh()} />
+        ) : null}
         <Text className="px-1 text-xs" style={{ color: DESIGN.colors.textSecondary }}>Todo esto funciona sin señal. Se sube solo cuando vuelva la conexión.</Text>
       </View>
     </ScrollView>
