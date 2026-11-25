@@ -1,11 +1,11 @@
 # Avance y próximos pasos del MVP
 
 **Equipo:** Santiago Acosta Carvajal, Emmanuel Peñuela Chica, Jerónimo López Ospina
-**Fecha de este documento:** 22 de noviembre de 2026
+**Fecha de este documento:** 24 de noviembre de 2026 (actualizado; la primera versión es del 22)
 **Entrega:** 5 de diciembre de 2026 (el 5 cae sábado, así que el cierre real es el viernes 4)
-**Tiempo que queda:** 13 días
+**Tiempo que queda:** 11 días
 
-Este documento tiene dos partes. La primera cuenta, con detalle, lo que se hizo desde el último balance (push, ícono, consentimiento de ubicación y eje del reporte). La segunda es lo que falta para el MVP, ordenado por qué tan necesario es.
+Este documento tiene dos partes. La primera cuenta, con detalle, lo que se ha hecho (push, ícono, consentimiento de ubicación, eje del reporte, sincronización automática y reglas del servidor por rol). La segunda es lo que falta para el MVP, ordenado por qué tan necesario es. **Es la fuente de verdad del estado del proyecto: si algo cambia, se actualiza aquí.**
 
 ---
 
@@ -22,7 +22,9 @@ Con lo hecho esta semana, **por primera vez el cierre por parte del admin es pos
 | Nota de voz | **No iniciado** (hoy es una nota escrita) |
 | Firma del cliente con el dedo | Implementado, sin probar en dispositivo |
 | Trabajo `COMPLETADO` | Implementado |
-| Sincronización sin duplicados | Parcial (falta `event_id`) |
+| Sincronización automática al volver la red | **Implementada** (sin probar en dispositivo) |
+| Sincronización sin duplicados | Parcial (hay candado único; falta `event_id` con `UNIQUE`) |
+| Reglas del servidor por rol (técnico no cancela ni cierra) y foto «después» | **Implementadas** en app, backend y Postgres |
 | El admin aprueba y cierra desde la app | **Implementado esta semana** (sin probar en dispositivo) |
 | Estilo visual elegido | Implementado, falta revisar en Android e iOS |
 
@@ -117,20 +119,62 @@ El ícono era el de Expo por defecto. Ahora `icon.png`, el ícono adaptable de A
 **Límites conocidos**
 - «Entregado» significa aprobado y cerrado. **El envío real al cliente (PDF o correo) no existe todavía.**
 - El admin **no ve las fotos**, solo cuántas hay: falta una política de lectura en Storage para su rol.
-- Un técnico dueño de una orden aún puede cerrarla una vez aprobada (validación de rol pendiente, ver 3.1).
+- ~~Un técnico dueño de una orden aún puede cerrarla una vez aprobada~~: resuelto en la sección 2.6.
 
-### 2.5 Pruebas y orden del repositorio
+### 2.5 Sincronización automática (ADR 0012) · PR #19, commit `ec06843`
+
+**El problema.** El documento de visión promete que «cuando vuelve la red, todo se sincroniza solo». Hasta entonces la cola solo se enviaba al enfocar una lista o al pulsar «Sincronizar ahora»: en una demo en modo avión el técnico tenía que acordarse de refrescar.
+
+**Qué hace.** La cola se envía sola:
+
+| Cuándo | Qué lo dispara |
+|---|---|
+| Vuelve la red | `expo-network` |
+| La app vuelve a abrirse | `AppState` pasa a «active» |
+| Inicio de sesión | Cuando ya se conoce la cuenta y su rol |
+| Cada 30 s con la app abierta | Solo si hay algo pendiente |
+
+- **Backoff exponencial** si falla (15 s, 30 s, 1, 2, 4 min y tope de 5). Solo frena el intento periódico: volver la red o abrir la app siempre cuentan como una oportunidad nueva. Nunca bloquea al técnico (regla 1).
+- **Candado único** (`src/domain/sincronizadorUnico.ts`, expuesto en `src/data/sync-runner.ts`): es el único camino para sincronizar (listas, botón manual, automática y segundo plano). Evita que dos ejecuciones simultáneas manden la misma cola dos veces.
+- **Las listas se actualizan solas**, sin esqueleto de carga, cuando la automática subió algo.
+- **El perfil se reintenta al volver la red.** Antes se pedía una sola vez: si la app se abría sin señal, el rol quedaba desconocido y no se podía sincronizar ni al reconectar.
+- **Tarea de segundo plano** (`expo-background-task`) como **respaldo**, no como base: el intervalo mínimo es de 15 min y el sistema decide cuándo corre (iOS suele ignorar intervalos cortos). **Solo funciona en un APK**; en Expo Go se desactiva.
+
+**Límites conocidos:** no hay indicador visual de que se está sincronizando (banner e indicador por tarjeta siguen pendientes); el candado no cubre procesos distintos (tarea de fondo y app abierta a la vez), así que lo definitivo sigue siendo `event_id` con `UNIQUE`; `CONFLICTO` sigue sin salida; si el perfil nunca carga, no se sincroniza; requiere un **APK nuevo** (módulos nativos y un plugin).
+
+### 2.6 Reglas del servidor por rol y foto «después» (ADR 0013) · este PR
+
+**El problema.** El documento de visión dice que el técnico no puede enviar `CERRADO`, `CANCELADO` ni `APROBADO`, y que completar exige una foto «después». El servidor no lo cumplía: un técnico dueño de una orden podía cancelarla (por `/sync` o `PATCH /ordenes/:id`) y cerrarla una vez aprobado el reporte, y bastaba una foto «antes» para completar.
+
+**Reglas**
+
+| Rol | Puede |
+|---|---|
+| Técnico | Solo avanzar el flujo de campo: `ASIGNADO → EN_CAMINO → EN_SITIO → COMPLETADO` |
+| Administrador | Todo lo válido: también cancelar, cerrar y ejecutar el flujo de campo (migración 008) |
+
+Completar un trabajo exige **firma y al menos una foto «después»**; una foto «antes» sola no basta. La pantalla de evidencia ya exigía la foto «después» para continuar: lo que faltaba era el dominio, el backend y el SQL.
+
+**Qué se construyó (la misma regla en tres capas)**
+- *App móvil:* `transicionarTrabajo` recibe `rol` y `tieneFotoDespues`; `finalizarTrabajo` consulta solo `FOTO_DESPUES`.
+- *Backend:* `puedeTransicionarPorRol` (función pura). `/sync` simula el avance de cada trabajo dentro del lote, porque varias operaciones pueden encadenarse, y si alguna transición válida no le corresponde al rol rechaza **todo el lote con 403**. `PATCH /ordenes/:id` aplica la misma regla. Completar exige `FOTO_DESPUES`.
+- *Postgres (`011_reglas_servidor.sql`):* triggers `validar_rol_transicion_trabajo` y `exigir_foto_despues_al_completar`. Valen también para quien use PostgREST con su JWT sin pasar por Express. Sin JWT (SQL Editor o `service_role`) no se aplica la regla de rol, pero la foto «después» se exige siempre.
+
+**Límites conocidos:** el técnico aún puede editar desde PostgREST columnas como cliente, dirección o descripción de sus órdenes (ver sección 3.D); no hay pantalla de admin para cancelar con motivo.
+
+### 2.7 Pruebas y orden del repositorio
 
 - El script `test` ahora usa `tests/*.test.mjs` (móvil y backend), para que dos ramas no editen la misma línea y no choquen al fusionarse.
-- **Pruebas automáticas hoy:** móvil 41 y backend 24, todas en verde, más `tsc`, lint y `expo export --platform android` sin errores.
-- **Migración 010:** se probó con 21 comprobaciones en PGlite (un Postgres real en WebAssembly), usando el trigger real de la migración 008. Esa prueba **no está en el repositorio** y usa un usuario y un RLS simulados, así que no sustituye probarla en Supabase real.
+- **Pruebas automáticas hoy:** móvil 56 y backend 30, todas en verde, más `tsc`, lint y `expo export --platform android` sin errores.
+- **Migraciones 010 y 011:** se probaron con 21 y 13 comprobaciones en PGlite (un Postgres real en WebAssembly), usando el trigger real de la migración 008. Esas pruebas **no están en el repositorio** y usan un usuario y un RLS simulados, así que no sustituyen probarlas en Supabase real.
 - **Ninguna de estas pruebas corrió en un celular ni contra un Supabase real.**
 
-### 2.6 Documentación
+### 2.8 Documentación
 
-- ADR 0009 (push), 0010 (consentimiento) y 0011 (eje del reporte), y nota en el 0005 (ícono).
-- Pasos 12 y 13 en `mobile/docs/supabase/README.md` (migraciones 009 y 010).
-- `01-tecnicos-de-campo.md`: consentimiento marcado; en acciones de admin ya están aprobar y cerrar, falta cancelar.
+- ADR 0009 (push), 0010 (consentimiento), 0011 (eje del reporte), 0012 (sincronización automática) y 0013 (reglas por rol), y nota en el 0005 (ícono).
+- Pasos 12 a 14 en `mobile/docs/supabase/README.md` (migraciones 009, 010 y 011).
+- `01-tecnicos-de-campo.md`: consentimiento y validación de rol marcados; en acciones de admin ya están aprobar y cerrar, falta cancelar.
+- `mobile/AGENTS.md`: estado del código y reglas por rol actualizados para quien trabaje con agentes.
 - `SOLICITUD-ACCESO-EXPO.md` y `GUIA-NOTIFICACIONES-PUSH.md`: guías para el push.
 - Corrección: los ADR 0010 y 0011 decían `2026-11-23`; la fecha correcta es `2026-11-22`.
 
@@ -138,7 +182,7 @@ El ícono era el de Expo por defecto. Ahora `icon.png`, el ícono adaptable de A
 
 ## 3. Lo que falta
 
-Está ordenado por prioridad. **A** es lo que bloquea la definición de terminado; **B** es lo que le da valor al producto; **C** es la entrega; **D** es deuda y documentación.
+Está ordenado por prioridad. **A** es lo que bloquea la definición de terminado; **B** es lo que le da valor al producto; **C** es la entrega; **D** es deuda y documentación; **E** son hallazgos de la auditoría que no estaban en ningún checklist.
 
 ### A. Imprescindible para la demo
 
@@ -147,16 +191,17 @@ Está ordenado por prioridad. **A** es lo que bloquea la definición de terminad
   - El consentimiento: sale una vez, «Ahora no» no bloquea, se puede revocar.
   - La revisión del admin: borrador, aprobar y cerrar.
   - Los pasos están en la sección 5 de este documento.
-- [ ] **Aplicar y verificar las migraciones en el Supabase real** (004, 006, 007, 008, 009 y **010**). La 010 es nueva y la necesita el cierre.
+- [ ] **Aplicar y verificar las migraciones en el Supabase real** (004, 006, 007, 008, 009, **010** y **011**). La 010 y la 011 son nuevas: la 010 la necesita el cierre y la 011 las reglas por rol.
 - [ ] **Redesplegar Render** con el código nuevo (lo hace tu compañero).
 - [ ] **Nota de voz real** con `expo-audio`. Es el ítem más grande. Además de grabar, hay que:
   - Subir el audio a Storage: hoy `uploadEvidence` solo acepta fotos.
   - Aceptar el tipo `AUDIO` en la validación de `/sync` y en el RPC `sync_trabajos`: hoy solo acepta foto, firma y nota.
   - El trigger de la 010 ya trata `AUDIO` como insumo, así que el eje 3 avanza solo.
 - [ ] **`event_id` (UUID con `expo-crypto`)** en `sync_queue` y restricción `UNIQUE` en Postgres, para que reenviar un lote no duplique. Es lo que garantiza «sin duplicados».
-- [ ] **Validación de rol en `/sync`.** Hoy el servidor no distingue roles: un técnico dueño de una orden puede enviar `CANCELADO` y, una vez aprobado el reporte, `CERRADO`. El documento de visión dice que solo el admin cancela y cierra.
-- [ ] **Foto «después» obligatoria.** El documento exige al menos una foto «después», pero la app, el backend y el SQL aceptan cualquiera de las dos. Hay que igualarlo en las tres capas.
-- [ ] **Cancelar con motivo desde la app (admin).** La función `cancelarTrabajo` existe en la capa de datos pero ninguna pantalla la usa.
+- [x] **Validación de rol en `/sync`** (técnico no cancela ni cierra). Hecho en app, backend y Postgres (sección 2.6). Falta aplicar la migración `011` en el Supabase real.
+- [x] **Foto «después» obligatoria.** Hecho en las tres capas (sección 2.6).
+- [x] **Sincronización automática al volver la red** (sección 2.5). Falta probarla en un celular.
+- [ ] **Cancelar con motivo desde la app (admin).** La función `cancelarTrabajo` existe en la capa de datos (y ahora rechaza al técnico), pero ninguna pantalla la usa. Es lo siguiente a hacer.
 
 ### B. Lo que da valor al producto
 
@@ -165,7 +210,7 @@ Está ordenado por prioridad. **A** es lo que bloquea la definición de terminad
 - [ ] **El admin ve las fotos** en la pantalla de revisión (política de lectura en Storage para su rol y la UI).
 - [ ] **Reporte a PDF** con `expo-print` y `expo-sharing`: fotos, nota, firma, horas y el texto aprobado. Ahora que existe `reporte_texto`, también serviría como la **entrega real al cliente**.
 - [ ] **Indicador del eje de sincronización** en cada tarjeta (`SOLO_LOCAL`, `EN_COLA`, `SINCRONIZADO`, `CONFLICTO`).
-- [ ] **Banner «sin conexión»** y contador de pendientes en Cuenta (hoy no hay detector de red).
+- [ ] **Banner «sin conexión»** y contador de pendientes en Cuenta. Ya hay detector de red (`expo-network`, sección 2.5); falta mostrarlo.
 - [ ] **Hoy e Historial** con `FlatList` o `SectionList`, con estado vacío, de carga y pull-to-refresh. Hoy usan `ScrollView` con `map`.
 - [ ] **Márgenes seguros** en los botones inferiores de los pasos del flujo. Ya los usan el consentimiento y la revisión; faltan los pasos de llegada, evidencia, nota y firma.
 - [ ] **Revisión visual del skeuomorfismo** en Android **e iOS**.
@@ -194,16 +239,36 @@ Está ordenado por prioridad. **A** es lo que bloquea la definición de terminad
 - [ ] **Una prueba de integración mínima** (SQLite o Postman automatizado). Opcional: llevar al repositorio la prueba PGlite de la migración 010.
 - [ ] **Funciones puras `estadoSync.ts`** con pruebas: el documento de visión las promete y solo existe `estadoTrabajo.ts`.
 
+### E. Otros hallazgos de la auditoría (23 de noviembre)
+
+Cosas que no estaban en ningún checklist y conviene tener presentes:
+
+- [ ] **`CONFLICTO` no tiene salida.** Se marca al recibir un 409 del servidor y nada lo limpia: el trabajo queda atascado y la cola reintenta sin éxito. Tampoco se cumple la regla «la evidencia del técnico se guarda igual y el admin decide».
+- [ ] **Falta el segundo reloj** (`recibido_en` del servidor junto a `ocurrido_en`). El documento de visión lo pide para marcar cuando difieren más de 5 minutos.
+- [ ] **Los derechos del titular no tienen mecanismo.** La pantalla de consentimiento dice que se puede pedir suprimir o rectificar los datos, pero no hay ningún canal ni función. Hay que agregar al menos un contacto, o una acción real.
+- [ ] **La retención de 90 días no está implementada.** Cuando exista el GPS hará falta un job (`pg_cron`) que borre las posiciones antiguas.
+- [ ] **Backend sin endurecer:** sin límite de intentos en `/auth/login` y `/auth/register`, sin `helmet`, sin registro de peticiones y con CORS en `*` por defecto.
+- [ ] **Registro abierto:** cualquiera puede crearse una cuenta de técnico desde `/auth/register`. Decidir si es intencional o si solo el admin invita.
+- [ ] **Borrado duro de órdenes** (`DELETE /ordenes/:id`): se pierde el historial y las fotos quedan huérfanas en Storage. Lo coherente sería cancelar o desactivar, como con los clientes.
+- [ ] **Permiso de cámara sin declarar** en `app.json`: `expo-image-picker` no está como plugin con su texto en español. Es probable que falle o lo rechacen en iOS.
+- [ ] **`eas.json` solo tiene el perfil `preview`**; no hay `production` ni manejo de `versionCode`.
+- [ ] **No hay CI.** Con PR fusionados a diario, un workflow que corra `tsc`, lint y las pruebas evitaría romper `develop`.
+- [ ] **No hay `render.yaml`** versionado: cómo se despliega el backend solo está en la cabeza de quien lo configuró. Además `tsx` y `typescript` están en `devDependencies` y el backend arranca con `tsx`: verificar que Render los instale.
+- [ ] **Qué rama despliega Render.** Es solo una pregunta para quien lo configuró: `main` va atrás de `develop` y, si Render mira `main`, un redespliegue serviría el código viejo. No se toca `main` hasta el final.
+- [ ] **Web:** hay commits para la versión web, pero `expo-secure-store` no existe en web, así que ahí el consentimiento se pediría siempre. Decidir si la web se soporta.
+- [ ] **Demo:** los planes gratuitos se duermen. Supabase pausa un proyecto tras unos días sin uso y Render lo duerme en minutos: despertar ambos antes de la demo.
+- [ ] **Menores:** no hay «recuperar contraseña» ni registro de errores (por ejemplo, Sentry).
+
 ---
 
-## 4. Plan sugerido para los 13 días
+## 4. Plan sugerido hasta la entrega
 
 La idea es probar pronto, porque lo que nunca se ha corrido en un celular es lo que más riesgo tiene. Además, se pone un congelamiento de funcionalidades para que la última semana sea solo de prueba y entrega.
 
 | Cuándo | Foco | Qué entra |
 |---|---|---|
 | **Lun 23 – Mar 24 nov** | Probar y desbloquear | Aplicar migraciones (en especial la 010), redesplegar Render, probar en celular el flujo, el consentimiento y la revisión. Corregir lo que salga |
-| **Mié 25 – Vie 27 nov** | Reglas del servidor | Validación de rol en `/sync`, foto «después» obligatoria, cancelar con motivo, `event_id` con su `UNIQUE` |
+| **Mié 25 – Vie 27 nov** | Reglas del servidor | ~~Validación de rol en `/sync`~~ y ~~foto «después» obligatoria~~ (hechas el 24 nov), cancelar con motivo, `event_id` con su `UNIQUE` |
 | **Sáb 28 nov – Mar 1 dic** | Lo que falta de la definición | Nota de voz real, indicador de sincronización y banner sin conexión, PDF. **Congelamiento el domingo 29** |
 | **Mié 2 – Vie 4 dic** | Cierre | Prueba en modo avión, APK en dos teléfonos, datos semilla, README, video y ensayo |
 
@@ -217,10 +282,10 @@ La idea es probar pronto, porque lo que nunca se ha corrido en un celular es lo 
 
 ---
 
-## 5. Cómo probar lo hecho esta semana
+## 5. Cómo probar lo hecho
 
 **Preparación**
-1. Ejecutar `010_eje_reporte.sql` en Supabase **antes** de desplegar o probar el backend nuevo.
+1. Ejecutar `010_eje_reporte.sql` y `011_reglas_servidor.sql` en Supabase **antes** de desplegar o probar el backend nuevo.
 2. Backend: `cd backend && npm run dev` (puerto 3000, comprobar con `/health`).
 3. App: `cd mobile && npm start` y escanear el QR con Expo Go.
 4. Celular y computador en la misma red; si falla, revisar IP de `.env.local` y firewall (ver `mobile/AGENTS.md`).
@@ -239,4 +304,18 @@ La idea es probar pronto, porque lo que nunca se ha corrido en un celular es lo 
 3. «Guardar borrador» (`BORRADOR`), editar, «Aprobar reporte» (`APROBADO`) y «Cerrar trabajo» con confirmación (`CERRADO` y reporte `ENTREGADO`).
 4. Prueba negativa: con un token de técnico, `PATCH /ordenes/<id>/reporte` debe responder `403`.
 
-**Qué no se puede probar en Expo Go:** las notificaciones push y el ícono nuevo. Ambos necesitan un APK compilado.
+**Sincronización automática** (sirve Expo Go)
+1. Con red, iniciar sesión como técnico.
+2. Activar modo avión y avanzar un trabajo (por ejemplo, guardar una nota): Cuenta muestra «Pendientes por subir».
+3. Quitar el modo avión **sin tocar nada**: en unos segundos debe subir solo y la lista debe actualizarse.
+4. Repetir mandando la app al fondo y volviendo a abrirla con red.
+5. Caso difícil: cerrar la app, modo avión, abrirla (la sesión se restaura sin red) y luego volver la red: debe cargar el rol y sincronizar.
+
+**Reglas por rol y foto «después»** (sirve Expo Go; con `curl` o Postman)
+1. Con un token de **técnico**, `PATCH /ordenes/<id>` con `{"estado":"CANCELADO","motivo_cancelacion":"x"}` debe responder `403` con «Solo un administrador puede cancelar o cerrar un trabajo.»
+2. Lo mismo por `POST /sync` con una operación de `CANCELADO`: debe responder `403` y no cambiar nada.
+3. Con un token de **admin**, la misma cancelación debe funcionar.
+4. Un trabajo con firma y solo foto «antes»: completarlo debe responder `409` pidiendo la foto «después».
+5. En la app, la pantalla de evidencia no deja continuar sin la foto «después».
+
+**Qué no se puede probar en Expo Go:** las notificaciones push, el ícono nuevo y la tarea de segundo plano. Todo eso necesita un APK compilado.

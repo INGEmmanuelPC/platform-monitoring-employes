@@ -16,6 +16,7 @@
 
 12. Ejecuta `009_tokens_push.sql` para crear `push_tokens` (tokens de notificaciones push; solo el backend la lee y escribe).
 13. Ejecuta `010_eje_reporte.sql` para que el reporte avance sin IA (nota → borrador → aprobado → entregado). Agrega las columnas `reporte_texto`, `reporte_aprobado_por` y `reporte_aprobado_at` y los triggers que protegen el eje. Es re-ejecutable.
+14. Ejecuta `011_reglas_servidor.sql` para que el técnico no pueda cancelar ni cerrar trabajos y para exigir la foto «después» al completar. Crea dos triggers sobre `trabajos`. Es re-ejecutable y no toca datos.
 
 Las migraciones crean:
 

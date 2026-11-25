@@ -53,7 +53,7 @@ Estilo elegido: **Skeuomorfismo**. La elevación y los bordes táctiles hacen qu
 - [ ] Tabla `posiciones_pendientes` y su carril de envío separado de `sync_queue` (tope de 500 filas, submuestreo a 30).
 - [ ] Mapa simple en el detalle del trabajo con el recorrido enviado (`react-native-maps`; ver nota de costos abajo).
 - [ ] Acciones de admin dentro de la app: aprobar reporte, cerrar trabajo (`COMPLETADO → CERRADO`) y cancelar con motivo obligatorio. Ya están **aprobar reporte** y **cerrar trabajo** (ADR 0011, pantalla `trabajo/[id]/revision`); falta **cancelar con motivo**.
-- [ ] Validación mínima de rol en el backend: un técnico no puede enviar `CERRADO`, `CANCELADO` ni `APROBADO` por `/sync`.
+- [x] Validación mínima de rol en el backend: un técnico no puede enviar `CERRADO`, `CANCELADO` ni `APROBADO` por `/sync`. Aplica en app, backend y Postgres (`mobile/docs/adr/0013-reglas-por-rol-y-foto-despues.md`, migración `011`). Falta aplicar la `011` en el Supabase real.
 - [ ] `event_id` (UUID con `expo-crypto`) en `sync_queue` + restricción `UNIQUE` en Postgres para que reenviar no duplique.
 
 ### Fase 3 · Lo que da valor y el pulido (17 – 28 nov)

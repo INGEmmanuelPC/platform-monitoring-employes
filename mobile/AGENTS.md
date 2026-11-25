@@ -52,6 +52,14 @@ no solo el código.
 5. **Nada de texto escrito directo en los componentes.** Los oficios cambian
    los nombres de las cosas ("visita" vs "servicio" vs "orden").
 
+6. **La regla vive en el servidor; la app solo la refleja.** Toda regla de
+   negocio (quién puede cancelar o cerrar, qué exige completar un trabajo, cómo
+   avanza el reporte) se aplica en **tres capas que dicen lo mismo**: una función
+   pura en la app, otra en el backend y triggers en Postgres, que son la defensa
+   final porque la política RLS deja al técnico escribir directo a PostgREST.
+   Ver ADR 0011 (reporte) y ADR 0013 (roles y foto «después»). Si cambias una
+   regla, cámbiala en las tres y en sus pruebas.
+
 ## Stack — fijo, no proponer alternativas
 
 | Capa | Elección | Nota |
@@ -98,9 +106,26 @@ Ya existe:
 - `src/navigation/` y `src/providers/` — navegadores y proveedores globales
 - NativeWind v5 configurado y verificado en dispositivo
 
-Ya existe la base inicial de SQLite, una cola de sincronización operativa, el
-backend HTTP y la lectura local/remota de trabajos. Aún no existe: audio real,
-lienzo de firma ni panel de administrador.
+Además de lo anterior ya existe (el detalle y los PR están en
+`../PROXIMOS-PASOS.md`, sección 2):
+
+- SQLite como fuente de verdad, cola de sincronización transaccional y backend HTTP.
+- **Máquina de estados** de los tres ejes en funciones puras (`src/domain/`), con
+  pruebas, y la misma regla en el backend y en Postgres (ADR 0011 y 0013).
+- **Flujo completo del técnico:** voy en camino, llegada, fotos antes y después,
+  nota, y **lienzo de firma real** (SVG).
+- **Roles:** el técnico solo avanza el flujo de campo; cancelar y cerrar son del
+  administrador, que también puede ejecutar trabajos (ADR 0013).
+- **Eje del reporte sin IA:** el admin redacta, aprueba y cierra desde la pantalla
+  `trabajo/[id]/revision` (ADR 0011).
+- **Sincronización automática** al volver la red o a primer plano, con candado
+  único y backoff (ADR 0012). Toda sincronización pasa por `src/data/sync-runner.ts`;
+  no llames a `processSyncQueue` directamente.
+- **Consentimiento de ubicación** una vez por cuenta (ADR 0010), todavía sin GPS.
+- **Notificaciones push** en código (ADR 0009); falta la infraestructura del APK.
+
+Aún no existe: **nota de voz real**, `event_id` para idempotencia, rastreo GPS,
+PDF del reporte, cancelar con motivo desde la app, panel web de administrador.
 
 Los estados y etiquetas de `src/constants/trabajos.ts` son contratos de dominio; los
 datos de trabajos viven en SQLite y se refrescan desde el backend HTTP.
@@ -198,11 +223,20 @@ datos de trabajos viven en SQLite y se refrescan desde el backend HTTP.
   revisó el PR.
 - La lógica de sincronización y de transiciones debe ser código puro,
   testeable sin levantar la app.
+- Cada migración SQL nueva va numerada en `docs/supabase/`, es re-ejecutable y se
+  registra en `docs/supabase/README.md`. Las pruebas se corren con
+  `npm test` (patrón `tests/*.test.mjs`, sin listas manuales).
 
 ## Prioridad actual
 
-**V0 — un corte vertical, de punta a punta.** Un trabajo: verlo, marcar
-llegada, una foto, una nota, firma, y que sobreviva a cerrar la app y volver a
-abrirla. Sin voz, sin PDF, sin mapa, sin roles. Desplegado y demostrable.
+**Entrega del MVP: 5 de diciembre de 2026** (el cierre real es el viernes 4).
+La definición de terminado es: un técnico, sin señal, marca «voy en camino»,
+llega, toma una foto, graba una nota de voz, el cliente firma y el trabajo queda
+`COMPLETADO`; al volver la red se sincroniza sin duplicados y el admin, desde la
+misma app, lo aprueba y lo cierra.
 
-Si algo no es necesario para que el técnico termine **un** trabajo, no es V0.
+**Qué falta y en qué orden está en `../PROXIMOS-PASOS.md`.** Léelo antes de elegir
+una tarea y **actualízalo al terminar** (marca lo hecho y suma una sección en el
+apartado 2): es la fuente de verdad del estado del proyecto.
+
+Si algo no es necesario para esa definición de terminado, no entra todavía.
