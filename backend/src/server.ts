@@ -8,7 +8,13 @@ import { avisoPorCambioDeEstado, NotificadorExpoPush, type CambioDeEstado } from
 import { AlmacenTokensPushSupabase } from "./push-tokens.js";
 import { createAdminClient, createRequestClient } from "./supabase.js";
 import { transicionarReporte } from "./reporte-state.js";
-import { esFirmaSvgValida, esTransicionTrabajoValida, type EstadoTrabajoServidor } from "./trabajo-state.js";
+import {
+  esFirmaSvgValida,
+  esTransicionTrabajoValida,
+  MENSAJE_SOLO_ADMIN,
+  puedeTransicionarPorRol,
+  type EstadoTrabajoServidor,
+} from "./trabajo-state.js";
 import {
   clienteSchema,
   credentialsSchema,
@@ -208,6 +214,22 @@ app.post("/sync", async (request, response, next) => {
       const { data: previos } = await response.locals.supabase
         .from("trabajos").select("id, estado, tecnico_id, cliente").in("id", idsTrabajos);
       for (const fila of previos ?? []) antes.set(fila.id, fila);
+    }
+    // Regla de rol: el técnico no cancela ni cierra. Se simula el avance de cada
+    // trabajo dentro del lote (varias operaciones pueden encadenarse) y, si alguna
+    // transición válida no le corresponde a su rol, se rechaza TODO el lote.
+    const estadoSimulado = new Map([...antes].map(([id, fila]) => [id, fila.estado]));
+    for (const op of operations) {
+      if (op.entity !== "trabajos") continue;
+      const actual = estadoSimulado.get(op.entity_id);
+      if (actual === undefined) continue;
+      const siguiente = op.payload.estado;
+      if (actual !== siguiente && esTransicionTrabajoValida(actual, siguiente) &&
+          !puedeTransicionarPorRol(response.locals.profile.role, actual, siguiente)) {
+        response.status(403).json({ error: MENSAJE_SOLO_ADMIN });
+        return;
+      }
+      estadoSimulado.set(op.entity_id, siguiente);
     }
     const { data, error } = await response.locals.supabase.rpc("sync_trabajos", {
       p_operations: operations,
@@ -493,18 +515,21 @@ function crudRoutes(path: string, table: "clientes" | "trabajos", schema: z.ZodO
           response.status(409).json({ error: `El servidor rechazó la transición de ${trabajo.estado} a ${input.estado}.` });
           return;
         }
+        if (!puedeTransicionarPorRol(response.locals.profile.role, trabajo.estado, input.estado)) {
+          response.status(403).json({ error: MENSAJE_SOLO_ADMIN });
+          return;
+        }
         if (input.estado === "COMPLETADO") {
-          const [firma, fotoAntes, fotoDespues] = await Promise.all([
+          const [firma, fotoDespues] = await Promise.all([
             tieneEvidenciaValida(response.locals.supabase, request.params.id, "FIRMA"),
-            tieneEvidenciaValida(response.locals.supabase, request.params.id, "FOTO_ANTES"),
             tieneEvidenciaValida(response.locals.supabase, request.params.id, "FOTO_DESPUES"),
           ]);
           if (!firma) {
             response.status(409).json({ error: "No se puede completar el trabajo sin una firma capturada y sincronizada." });
             return;
           }
-          if (!fotoAntes && !fotoDespues) {
-            response.status(409).json({ error: "No se puede completar el trabajo sin una fotografía sincronizada." });
+          if (!fotoDespues) {
+            response.status(409).json({ error: "No se puede completar el trabajo sin una foto «después» sincronizada." });
             return;
           }
         }
@@ -626,6 +651,10 @@ app.use((error: unknown, _request: Request, response: Response, _next: NextFunct
   }
   if (code === "23503" || rawMessage.includes("violates foreign key constraint")) {
     response.status(409).json({ error: "No se puede eliminar este registro porque tiene datos relacionados." });
+    return;
+  }
+  if (code === "42501" && rawMessage.includes("administrador")) {
+    response.status(403).json({ error: rawMessage });
     return;
   }
   if (code === "42501" || rawMessage.toLowerCase().includes("row-level security")) {

@@ -9,7 +9,11 @@ export type AccionTrabajo =
 
 export type ContextoTransicionTrabajo = {
   tieneFirma?: boolean;
-  tieneFoto?: boolean;
+  // Hace falta al menos una foto «después»; una foto «antes» sola no basta.
+  tieneFotoDespues?: boolean;
+  // Quién actúa. Cancelar y cerrar son del administrador; el servidor y
+  // Postgres (migración 011) aplican la misma regla.
+  rol?: "tecnico" | "admin";
   estadoReporte?: EstadoReporte;
   motivoCancelacion?: string;
 };
@@ -67,11 +71,14 @@ export function transicionarTrabajo(
     throw new Error(`No se puede ${nombreAccion} desde el estado ${String(estado)}.`);
   }
 
+  if ((accion === "cerrar" || accion === "cancelar") && contexto.rol === "tecnico") {
+    throw new Error("Solo un administrador puede cancelar o cerrar un trabajo.");
+  }
   if (accion === "completar" && !contexto.tieneFirma) {
     throw new Error("El cliente debe firmar antes de terminar el trabajo.");
   }
-  if (accion === "completar" && !contexto.tieneFoto) {
-    throw new Error("El trabajo debe incluir al menos una foto antes de terminar.");
+  if (accion === "completar" && !contexto.tieneFotoDespues) {
+    throw new Error("El trabajo debe incluir al menos una foto «después» antes de terminar.");
   }
   if (accion === "cerrar" && contexto.estadoReporte !== "APROBADO") {
     throw new Error("Solo se puede cerrar un trabajo con el reporte aprobado.");

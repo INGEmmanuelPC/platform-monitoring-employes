@@ -41,7 +41,7 @@ test("no permite marcar llegada antes de iniciar el viaje", () => {
 
 test("completar requiere firma y fotografía", () => {
   assert.throws(
-    () => transicionarTrabajo("EN_SITIO", "completar", { tieneFoto: true }),
+    () => transicionarTrabajo("EN_SITIO", "completar", { tieneFotoDespues: true }),
     /debe firmar/,
   );
   assert.throws(
@@ -49,7 +49,7 @@ test("completar requiere firma y fotografía", () => {
     /al menos una foto/,
   );
   assert.equal(
-    transicionarTrabajo("EN_SITIO", "completar", { tieneFirma: true, tieneFoto: true }),
+    transicionarTrabajo("EN_SITIO", "completar", { tieneFirma: true, tieneFotoDespues: true }),
     "COMPLETADO",
   );
 });
@@ -80,4 +80,46 @@ test("la firma requiere una ruta SVG con un trazo y más de un punto", () => {
   assert.equal(firmaSvgTieneTrazo(null), false);
   assert.equal(firmaSvgTieneTrazo('<svg><path d="M 12 15"/></svg>'), false);
   assert.equal(firmaSvgTieneTrazo('<svg><path d="M 12 15 L 19 22"/></svg>'), true);
+});
+
+test("completar exige la foto «después»: una foto «antes» sola no basta", () => {
+  assert.throws(
+    () => transicionarTrabajo("EN_SITIO", "completar", { tieneFirma: true, tieneFotoDespues: false }),
+    /foto «después»/,
+  );
+  assert.throws(
+    () => transicionarTrabajo("EN_SITIO", "completar", { tieneFirma: true }),
+    /foto «después»/,
+  );
+});
+
+test("el técnico no puede cancelar ni cerrar", () => {
+  assert.throws(
+    () => transicionarTrabajo("ASIGNADO", "cancelar", { motivoCancelacion: "x", rol: "tecnico" }),
+    /Solo un administrador/,
+  );
+  assert.throws(
+    () => transicionarTrabajo("COMPLETADO", "cerrar", { estadoReporte: "APROBADO", rol: "tecnico" }),
+    /Solo un administrador/,
+  );
+});
+
+test("el administrador sí puede cancelar y cerrar", () => {
+  assert.equal(
+    transicionarTrabajo("EN_SITIO", "cancelar", { motivoCancelacion: "Cliente ausente", rol: "admin" }),
+    "CANCELADO",
+  );
+  assert.equal(
+    transicionarTrabajo("COMPLETADO", "cerrar", { estadoReporte: "APROBADO", rol: "admin" }),
+    "CERRADO",
+  );
+});
+
+test("el técnico sí puede avanzar el flujo de campo", () => {
+  assert.equal(transicionarTrabajo("ASIGNADO", "marcarEnCamino", { rol: "tecnico" }), "EN_CAMINO");
+  assert.equal(transicionarTrabajo("EN_CAMINO", "marcarLlegada", { rol: "tecnico" }), "EN_SITIO");
+  assert.equal(
+    transicionarTrabajo("EN_SITIO", "completar", { tieneFirma: true, tieneFotoDespues: true, rol: "tecnico" }),
+    "COMPLETADO",
+  );
 });

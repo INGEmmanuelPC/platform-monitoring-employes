@@ -43,3 +43,46 @@ test("la validación de firma del servidor exige un trazo con inicio y movimient
   assert.equal(esFirmaSvgValida('<svg><path d="M 4 8"/></svg>'), false);
   assert.equal(esFirmaSvgValida('<svg><path d="M 4 8 L 12 16"/></svg>'), true);
 });
+
+test("el técnico solo puede avanzar el flujo de campo", async () => {
+  const { puedeTransicionarPorRol } = await import(compiledUrl);
+  assert.equal(puedeTransicionarPorRol("tecnico", "ASIGNADO", "EN_CAMINO"), true);
+  assert.equal(puedeTransicionarPorRol("tecnico", "EN_CAMINO", "EN_SITIO"), true);
+  assert.equal(puedeTransicionarPorRol("tecnico", "EN_SITIO", "COMPLETADO"), true);
+});
+
+test("el técnico NO puede cancelar ni cerrar", async () => {
+  const { puedeTransicionarPorRol } = await import(compiledUrl);
+  for (const desde of ["ASIGNADO", "EN_CAMINO", "EN_SITIO"]) {
+    assert.equal(puedeTransicionarPorRol("tecnico", desde, "CANCELADO"), false);
+  }
+  assert.equal(puedeTransicionarPorRol("tecnico", "COMPLETADO", "CERRADO"), false);
+});
+
+test("el administrador puede todo lo válido, también lo del técnico", async () => {
+  const { puedeTransicionarPorRol } = await import(compiledUrl);
+  assert.equal(puedeTransicionarPorRol("admin", "ASIGNADO", "EN_CAMINO"), true);
+  assert.equal(puedeTransicionarPorRol("admin", "EN_SITIO", "COMPLETADO"), true);
+  assert.equal(puedeTransicionarPorRol("admin", "EN_SITIO", "CANCELADO"), true);
+  assert.equal(puedeTransicionarPorRol("admin", "COMPLETADO", "CERRADO"), true);
+});
+
+test("el rol no vuelve válida una transición inválida", async () => {
+  const { puedeTransicionarPorRol } = await import(compiledUrl);
+  assert.equal(puedeTransicionarPorRol("admin", "ASIGNADO", "EN_SITIO"), false);
+  assert.equal(puedeTransicionarPorRol("admin", "CANCELADO", "EN_CAMINO"), false);
+  assert.equal(puedeTransicionarPorRol("tecnico", "ASIGNADO", "COMPLETADO"), false);
+  assert.equal(puedeTransicionarPorRol("admin", "CERRADO", "CANCELADO"), false);
+});
+
+test("quedarse en el mismo estado no es una transición y cualquier rol puede", async () => {
+  const { puedeTransicionarPorRol } = await import(compiledUrl);
+  assert.equal(puedeTransicionarPorRol("tecnico", "EN_SITIO", "EN_SITIO"), true);
+});
+
+test("un rol desconocido no puede transicionar", async () => {
+  const { puedeTransicionarPorRol } = await import(compiledUrl);
+  assert.equal(puedeTransicionarPorRol("cliente", "ASIGNADO", "EN_CAMINO"), false);
+  assert.equal(puedeTransicionarPorRol("", "ASIGNADO", "EN_CAMINO"), false);
+  assert.equal(puedeTransicionarPorRol("tecnico", "toString", "EN_CAMINO"), false);
+});

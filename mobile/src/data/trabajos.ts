@@ -251,16 +251,17 @@ export async function finalizarTrabajo(
     );
     if (!trabajo) throw new Error("No se encontró el trabajo de este técnico.");
 
-    const evidencias = await database.getFirstAsync<{ firma: string | null; tieneFoto: number }>(
+    const evidencias = await database.getFirstAsync<{ firma: string | null; tieneFotoDespues: number }>(
       `SELECT
          (SELECT contenido FROM evidencias WHERE trabajo_id = ? AND tipo = 'FIRMA' ORDER BY created_at DESC LIMIT 1) AS firma,
-         EXISTS(SELECT 1 FROM evidencias WHERE trabajo_id = ? AND tipo IN ('FOTO_ANTES', 'FOTO_DESPUES')) AS tieneFoto`,
+         EXISTS(SELECT 1 FROM evidencias WHERE trabajo_id = ? AND tipo = 'FOTO_DESPUES') AS tieneFotoDespues`,
       trabajoId,
       trabajoId,
     );
     const nuevoEstado = transicionarTrabajo(trabajo.estado, "completar", {
       tieneFirma: firmaSvgTieneTrazo(firmaSvg) || firmaSvgTieneTrazo(evidencias?.firma),
-      tieneFoto: Boolean(evidencias?.tieneFoto),
+      tieneFotoDespues: Boolean(evidencias?.tieneFotoDespues),
+      rol: role,
     });
     if (firmaSvg.trim()) {
       await database.runAsync(
@@ -390,7 +391,7 @@ export async function cancelarTrabajo(
     );
     if (!trabajo) throw new Error("No se encontró el trabajo de este técnico.");
 
-    const nuevoEstado = transicionarTrabajo(trabajo.estado, "cancelar", { motivoCancelacion: motivo });
+    const nuevoEstado = transicionarTrabajo(trabajo.estado, "cancelar", { motivoCancelacion: motivo, rol: role });
     const updated = await database.runAsync(
       `UPDATE trabajos SET estado = ?, motivo_cancelacion = ?, sync = 'EN_COLA', updated_at = ?
        WHERE ${workPredicate(role)} AND estado = ?`,
